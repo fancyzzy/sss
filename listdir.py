@@ -21,6 +21,7 @@ from my_resources import *
 import my_decoder
 import untar_function
 import re
+import repeat_log
 #print sys.getdefaultencoding()
 
 '''
@@ -111,6 +112,8 @@ class DirList(object):
 
 		self.list_v = StringVar()
 		#selectmode=EXTENDED,BROWSE,MULTIPLE,SINGLE
+		#exportselection is used to enable "ctrl+c" to copy the content selected 
+		#in the listbox into the windows clipboard when =1
 		self.dirs = Listbox(self.dirfm, height=25, width=130, selectmode=EXTENDED,\
 			exportselection=1,listvariable=self.list_v)
 		#2017.8.23 BUG: 滚动轴导致程序挂掉，原因可能是由于多线程子线程更新GUI界面
@@ -207,6 +210,8 @@ class DirList(object):
 		self.popup_menu.add_command(label='Search',command=self.solo_search)
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Decode',command=self.my_decode)
+		self.popup_menu.add_separator()
+		self.popup_menu.add_command(label='Repetion',command=self.my_repeat)
 		#popup_menu.entryconfig("Open", state="disable")
 		############# menu init ################################
 
@@ -364,6 +369,48 @@ class DirList(object):
 		self.refresh_listbox(os.getcwd())
 		showinfo(title='Decode', message="Decode finished.")
 
+	def my_repeat(self, ev=None):
+		'''
+		counting the repeated log occurences
+		'''
+		print "DEBUG my_repeat started here"
+		s = u"Counting log repetition is under process. please wait..."
+		self.ptext.set(s)
+		self.pro_label.update()
+
+		l_result = []
+
+		select_file_list = []
+		index_list = self.dirs.curselection()
+		for idx in index_list:
+			select_file_list.append(self.dirs.get(idx))
+
+		top_rank = 5
+		l_result = repeat_log.repeat_log_rank(select_file_list, top_rank)
+
+		ds = ''
+		if sla.interval > 1000:
+			duration = sla.interval/60.0
+			ds = "%.1f minutes"%(duration)
+		else:
+			duration = sla.interval * 1.0
+			ds = "%.1f seconds"%(duration)
+		print "Finished, time used:",ds
+		s = "Repetition statistic finished, time used:{0}".format(ds)
+		self.ptext.set(s)
+		#self.refresh_listbox(os.getcwd())
+
+		self.dirs.delete(0, END)
+		self.dirs.insert(END, os.curdir)
+		s = u"-----------Log Repetition Top %d--------------------"%(top_rank)
+		self.dirs.insert(END,s)
+		#self.show_result(l_result,{})
+		for item in l_result:
+			s = "repeated:[{0} times]: {1}".format(item[1],item[0])
+			self.dirs.insert(END,s)
+			self.dirs.itemconfig(END,fg=my_color_blue)
+
+
 	def solo_search(self,ev=None):
 		print "solo_search start"
 		#multi selection
@@ -381,21 +428,23 @@ class DirList(object):
 
 	def untar(self):
 		#showinfo(title='Untar', message="To be done soon...")
-		file_list = []
+		print "DEBUG untar is starting"
+		path_list = []
 		
-		path = self.dirs.get(self.dirs.curselection())	
-		print "DEBUG path=",path
-		file_list.append(path)
+		index_list = self.dirs.curselection()
+		for idx in index_list:
+			path_list.append(self.dirs.get(idx))
 
-		#unicode necessary when path contains chinese character
-		#s = "{0} is under untar process. please wait".format(path)
-		s = u"{0} is under untar process. please wait...".format(path)
+		s = u"{0} is under untar process. please wait...".format(path_list)
 		self.ptext.set(s)
 		self.pro_label.update()
-		print "DEBUG untar is starting"
 		sleep(0.1)
 		
-		res = untar_function.untar_function(file_list)
+
+		for filename in path_list:
+			res = untar_function.untar_function(filename)
+			if res[0]:
+				break
 
 		ds = ''
 		if sla.interval > 1000:
@@ -411,10 +460,10 @@ class DirList(object):
 		self.refresh_listbox(os.getcwd())
 
 
-		if not res:
+		if not res[0]:
 			showinfo(title='Untar', message="Untar Succeeded!")
 		else:
-			showinfo(title='Untar', message="Untar Failed! reason=%s"%res)
+			showinfo(title='Untar', message="Untar Failed! reason=%s"%res[0])
 
 	#########menu function###############	
 
