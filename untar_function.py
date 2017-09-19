@@ -21,25 +21,29 @@ def untar_file(file_name, delet_cpfi=False):
 #		print a,g, r, t		
 	if a:
 		tar = tarfile.open(file_name,"r:gz")
+		'''
 		if os.path.isdir(file_name + "_files"):  
 			pass  
 		else:  
 			os.mkdir(file_name + "_files") 
 		S = tar.extractall(file_name + "_files")
+		'''
+		S = tar.extractall(path)
 		tar.close()
 		if delet_cpfi:
 			os.remove(file_name)
 		new_file = file_name.rstrip(a.group(0)) 
 	elif g:
+		'''
 		if os.path.isdir(file_name + "_files"):  
 			pass  
 		else:  
 			os.mkdir(file_name + "_files") 
-		f_name = file_name.replace(".gz", "")
-		(filepath, d_name) = os.path.split(f_name)
-		d_file = os.path.join(file_name + "_files", d_name)
+		'''
+
+		f_name = file_name.rstrip(".gz")
 		g_file = gzip.GzipFile(file_name)  	 
-		S = open(d_file, "wb+").write(g_file.read())
+		S = open(f_name, "wb+").write(g_file.read())
 		g_file.close()
 		if delet_cpfi:
 			os.remove(file_name)
@@ -62,25 +66,25 @@ def untar_file(file_name, delet_cpfi=False):
 		new_file = file_name.rstrip(r.group(0)) 
 	elif t:
 		tar = tarfile.open(file_name)
+		'''
 		if os.path.isdir(file_name + "_files"):  
 			pass  
 		else:  
 			os.mkdir(file_name + "_files")  
 		S = tar.extractall(file_name + "_files")
+		'''
+		S = tar.extractall(path)
 		tar.close()
 		if delet_cpfi:
 			os.remove(file_name)
 		new_file = file_name.rstrip(t.group(0)) 
 
-	print "DEBUG new_file=",new_file
 	return S,new_file
 
 @sla.time_interval
 def untar_function(filename, delet_fi=False):
-	print "DEBUG untar_function start, filename=",filename
 	if os.path.isfile(filename):
 		s = untar_file(filename, delet_fi)
-		print "DEBUG s=",s
 		if s[0]:
 			return s
 		new_file = s[1]
