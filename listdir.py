@@ -205,7 +205,7 @@ class DirList(object):
 		#multi open
 		self.popup_menu.add_command(label='Open',command=self.multi_open)
 		self.popup_menu.add_separator()
-		self.popup_menu.add_command(label='Untar',command=self.untar)
+		self.popup_menu.add_command(label='Unpack',command=self.untar)
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Search',command=self.solo_search)
 		self.popup_menu.add_separator()
@@ -570,10 +570,10 @@ class DirList(object):
 			path = self.dirs.get(idx)
 			result = re.search(re_pattern, path)
 			if not result:
-				self.popup_menu.entryconfig("Untar", state = "disable")
+				self.popup_menu.entryconfig("Unpack", state = "disable")
 				break
 		else:
-			self.popup_menu.entryconfig("Untar", state = "normal")
+			self.popup_menu.entryconfig("Unpack", state = "normal")
 
 		#check decode possible:
 		re_pattern = r'\.rtrc'
@@ -804,7 +804,7 @@ class DirList(object):
 		self.dirs.delete(0, END)
 		self.dirs.insert(END, os.curdir)
 		no_find = True
-		s = u"-----------搜索结果--------------------"
+		s = u"-----------Searching Result--------------------"
 		self.dirs.insert(END,s)
 		j = 0
 		for i in xrange(1,len(key_words)):
@@ -817,9 +817,16 @@ class DirList(object):
 				j = j+1
 				#s = self.searcher.l_keywords[i][0]
 				#self.dirs.insert(END,s)
-				s =u"{0}.-----'{1}'----- found in {2} files:".format(j,lk[0],nn)
+				s =u"[keyword]:{0}".format(lk[0])
 				self.dirs.insert(END,s)
 				self.dirs.itemconfig(END,fg=my_color_blue)
+				issue_category = lk[5].decode("gb2312")#.encode("utf-8")
+				#s =u"issue category:---{0}---".format(lk[4])
+				s =u"[Issue Category]:{0}".format(issue_category)
+				self.dirs.insert(END,s)
+				s =u"[Occurences]:{0}".format(nn)
+				self.dirs.insert(END,s)
+				#self.dirs.itemconfig(END,fg=my_color_blue)
 				#if lk[3].strip() != '':
 				#	lk[3]=lk[3].encode('utf-8')
 				#	s =lk[3]
@@ -880,9 +887,6 @@ class DirList(object):
 			self.ptext.set(s)
 			print "DEBUG error progress label got problems,e=",e
 			#self.pro_label.update()
-		print "DEBUG n=",n
-		print "DEBUG total =",self.searcher.total_work
-
 
 
 	def _async_raise(self,tid, exctype):
