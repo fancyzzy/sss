@@ -542,7 +542,9 @@ class DirList(object):
 	def syn_dir(self, path):
 		#print "DEBUG syn_dir called"
 		self.searcher.path = path
-		self.searcher.file_list = sla.get_file_list(path,[])
+		#not recursion all the files
+		#self.searcher.file_list = sla.get_file_list(path,[])
+		self.searcher.file_list = os.listdir(path)
 		self.searcher.total_work = len(self.searcher.file_list)
 
 	def listbox_click(self,event):
@@ -656,7 +658,7 @@ class DirList(object):
 		self.cwd.set(os.getcwd())
 		self.syn_dir(os.getcwd())
 
-		s = "{0} files selected. Filters: {1}".format(self.searcher.total_work,self.search_filter)
+		s = "{0} files. Filters: {1}".format(self.searcher.total_work,self.search_filter)
 		self.ptext.set(s)
 ###############doLS()##########################################
 
@@ -692,6 +694,20 @@ class DirList(object):
 		'''
 		one key automated analysing the directory
 		'''
+
+		select_path_list = []
+		index_list = self.dirs.curselection()
+		for idx in index_list:
+			select_path_list.append(self.dirs.get(idx))
+
+		self.searcher.file_list = []
+		for path in select_path_list:
+			self.searcher.file_list.extend(sla.get_file_list(path,[]))
+
+		#print "DEBUG index_list=",index_list
+		#print "DEBUG self.searcher.file_list=",self.searcher.file_list
+
+			
 		if True:
 			self.do_search()
 		else:
@@ -699,6 +715,9 @@ class DirList(object):
 			#decode
 			#search
 			pass
+		
+		
+	############auto_ananlyse#############
 
 
 	#开启一个线程进行搜索关键字，防止主线程被挂起
