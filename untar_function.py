@@ -6,6 +6,8 @@ import re
 import sla_multi_threads as sla
 
 
+unpack_list = ['.tar.gz','.gz','.tar','.tgz']
+
 #@sla.time_interval
 def untar_file(file_name, delet_cpfi=False):
 	S = None

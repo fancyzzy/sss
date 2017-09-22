@@ -3,6 +3,7 @@
 
 import os
 import sys
+import csv
 
 '''
 This is all the resources location
@@ -17,6 +18,28 @@ resource = "resource"
 ico_file = "auto_searcher.ico"
 print "path = ",os.path.join(resource,ico_file)
 icon_path = os.path.join(os.getcwd(),os.path.join(resource,ico_file))
+
+def read_keyword_file(keyword_file):
+	
+	l_key = []
+	try:
+		with open(keyword_file) as fobj:
+			reader = csv.reader(fobj)
+			for item in reader:
+				#ignore blank lines
+				if item[0].strip() == '':
+					continue
+				#item[-1]=item[-1].decode('gb2312')
+				#is it possible to use namedtuple here?
+				l_key.append(item)
+	except Exception as e:
+		logger.error(e)
+		exit("keywords.csv not accessed!")
+
+	return l_key
+###############read_keyword_file#####################
+keyword_list = read_keyword_file(data_file)[1:]
+filtered_keyword_list = keyword_list[:]
 
 
 #This is for pyinstaller
@@ -39,3 +62,4 @@ def resource_path(relative_path):
 if __name__ == '__main__':
 	
 	print "Resources"
+	#print "DEBUG keywords=",keyword_list

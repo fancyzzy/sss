@@ -92,7 +92,6 @@ def get_file_list(dir,file_list):
 			pass
 	except Exception as e:
 		logger.warning(e)
-
 	return file_list
 ################get_file_list####################
 
@@ -148,6 +147,8 @@ class auto_searcher(object):
 					if item[0].strip() == '':
 						continue
 					item[-1]=item[-1].decode('gb2312')
+					#is it possible to use namedtuple here?
+					#print "DEBUG item=",item
 					self.l_keywords.append(item)
 
 		except Exception as e:

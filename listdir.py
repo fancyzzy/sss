@@ -17,11 +17,12 @@ import ctypes
 import inspect
 #import sys
 import RTTP_decoder
-from my_resources import *
+from  my_resources import *
 import my_decoder
 import untar_function
 import re
 import repeat_log
+import multi_operates
 #print sys.getdefaultencoding()
 
 '''
@@ -135,7 +136,7 @@ class DirList(object):
 		#This is for keywords.csv data
 		self.keyword.set(data_file)
 		self.search_entry.bind('<Return>', self.get_default_keywords)
-		self.search_b = Button(self.search_fm, text="Start search", command=self.auto_analyse, activeforeground\
+		self.search_b = Button(self.search_fm, text="Auto search", command=self.auto_analyse, activeforeground\
 			='white', activebackground='orange',bg = 'white', relief='raised')
 		self.search_entry.focus_set()
 
@@ -249,7 +250,10 @@ class DirList(object):
 		#新建一个隶属于self.top的子窗口
 		#会随着主窗口关闭而关闭
 		#decode_top = Toplevel(self.top)
-		decode_top = RTTP_decoder.rttp(self.top)
+		decode_window = RTTP_decoder.rttp(self.top)
+		#sleep(3)
+		#decode_window.decode_top.destroy()
+		#decode_window.decode_top.bell()
 
 	def log_translate(self):
 		showinfo(title='Log Translate',message="To be done...")
@@ -266,12 +270,42 @@ class DirList(object):
 		'''
 
 	def menu_howto(self):
-		s = askyesno(title='How To', message = "把要分析的trace文件夹直接拖放到显示目录框中，点击'Start Search'\n简单吧?\n")
+		s = askyesno(title='How To', message = "把要分析的trace文件夹直接拖放到显示目录框中，点击'Auto search'\n简单吧?\n")
 		if s:
 			print s
 		else:
 			print "no s=",s
 
+	def filter_keyword(self):
+		'''
+		filter the keyword list according to d_filter
+		'''
+		global keyword_list
+
+		filtered_keyword_list = copy.deepcopy(keyword_list)
+
+		k = self.keyword.get()
+		if k == data_file:
+			ln = len(keyword_list)
+			for i in xrange(ln):
+				if keyword_list[i][1] in self.d_filter:
+					if self.d_filter[keyword_list[i][1]].get()=='0':
+						filtered_keyword_list.remove(keyword_list[i])
+				#print 'DEBUG filtered keyword_list=',filtered_keyword_list
+
+		#only one keyword in the list
+		#because the keyword entry has one customized keyword rather
+		#thant 'keywords.csv'
+		else:
+			filtered_keyword_list[0][0] = k
+			#issue category
+			#here is better to use namedtuple
+			filtered_keyword_list[0][5] = "customized keyword"
+
+			return filtered_keyword_list[:1]
+
+		return filtered_keyword_list
+	#########filter_keyword()###################
 
 	def menu_filter(self):
 		self.search_filter=[]
@@ -304,13 +338,12 @@ class DirList(object):
 		s = "{0} files, search filters: {1}".format(self.searcher.total_work,self.search_filter)
 		self.ptext.set(s)
 		self.keyword.set(data_file)
-				#print "filter:{0},value:{1}".format(self.lf[i],self.d_filter[self.lf[i]].get())
+		#print "filter:{0},value:{1}".format(self.lf[i],self.d_filter[self.lf[i]].get())
 
 	def menu_popup(self,event,m):
 
 		#The curselection return a tuple of the selected indexs
 		sel = self.dirs.curselection()
-		print "DEBUG sel=",sel
 		if len(sel) == 1:
 			check = self.dirs.get(self.dirs.curselection())
 			m.post(event.x_root,event.y_root)
@@ -373,7 +406,6 @@ class DirList(object):
 		'''
 		counting the repeated log occurences
 		'''
-		print "DEBUG my_repeat started here"
 		s = u"Counting log repetition is under process. please wait..."
 		self.ptext.set(s)
 		self.pro_label.update()
@@ -421,14 +453,11 @@ class DirList(object):
 			#select_file_paths.append(self.dirs.get(idx))
 			sla.get_file_list(self.dirs.get(idx),self.searcher.file_list)
 
-
-		print "DEBUG select_file_list=",self.searcher.file_list
 		self.searcher.total_work = len(self.searcher.file_list)
 		self.do_search()
 
 	def untar(self):
 		#showinfo(title='Untar', message="To be done soon...")
-		print "DEBUG untar is starting"
 		path_list = []
 		
 		index_list = self.dirs.curselection()
@@ -540,7 +569,6 @@ class DirList(object):
 ###############Drag and Drop feature:########################
 
 	def syn_dir(self, path):
-		#print "DEBUG syn_dir called"
 		self.searcher.path = path
 		#not recursion all the files
 		#self.searcher.file_list = sla.get_file_list(path,[])
@@ -622,7 +650,6 @@ class DirList(object):
 			if os.path.isfile(tdir):
 				#print "This is a file!"	
 				#here double click on a file and open it
-				print "DEBUG tdir=",tdir
 				#print "DEBUG type(tdir)=",type(tdir)
 				tdir = tdir.encode('gb2312')
 				#print "DEBUG type(tdir)=",type(tdir)
@@ -651,7 +678,6 @@ class DirList(object):
 				return
 		else:
 
-			print "DEBUG DoLS directory:"
 			#self.top.update()
 			self.refresh_listbox(tdir)
 
@@ -694,30 +720,22 @@ class DirList(object):
 		'''
 		one key automated analysing the directory
 		'''
+		#global search_result
 
 		select_path_list = []
 		index_list = self.dirs.curselection()
 		for idx in index_list:
 			select_path_list.append(self.dirs.get(idx))
 
-		self.searcher.file_list = []
-		for path in select_path_list:
-			self.searcher.file_list.extend(sla.get_file_list(path,[]))
 
-		#print "DEBUG index_list=",index_list
-		#print "DEBUG self.searcher.file_list=",self.searcher.file_list
+		filtered_keyword_list = self.filter_keyword()
+		#multi_operates 1.unpack, 2.decode, 3.search
+		multi_operates.do_operates(select_path_list, filtered_keyword_list)
 
-			
-		if True:
-			self.do_search()
-		else:
-			#untar
-			#decode
-			#search
-			pass
+
+		self.show_result(filtered_keyword_list, multi_operates.search_result)
 		
-		
-	############auto_ananlyse#############
+################auto_ananlyse()#########################
 
 
 	#开启一个线程进行搜索关键字，防止主线程被挂起
@@ -802,6 +820,7 @@ class DirList(object):
 			self.show_progress()
 			custom_keyword = copy.deepcopy(self.searcher.l_keywords[:2])
 			custom_keyword[1][0]=k
+			custom_keyword[1][5]='customized keyword'
 			d_result = self.searcher.auto_search(custom_keyword,self.searcher.file_list,thread_num)
 
 			if self.searcher.total_work > 0:
@@ -813,20 +832,22 @@ class DirList(object):
 				self.searcher.total_work,self.keyword.get(),sla.interval)
 			self.ptext.set(s)
 
-		self.search_b.config(text='Start search',bg='white',relief='raised',state='normal')
+		self.search_b.config(text="Auto search",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
 		#clean the threads list:
 		l_threads = []
+		#print 'DEBUG search finished length d_result = ',len(d_result)
 
 	def show_result(self, key_words, d_result):
 	 	#写入dirs
 		self.dirs.delete(0, END)
 		self.dirs.insert(END, os.curdir)
 		no_find = True
-		s = u"-----------Searching Result--------------------"
+		s = "-"*20 + u"Searching Result" + "-"*20
 		self.dirs.insert(END,s)
 		j = 0
-		for i in xrange(1,len(key_words)):
+		ln = len(key_words)
+		for i in range(ln):
 			nn = 0
 			lk = key_words[i]
 			if key_words[i][0] in d_result:
@@ -836,14 +857,14 @@ class DirList(object):
 				j = j+1
 				#s = self.searcher.l_keywords[i][0]
 				#self.dirs.insert(END,s)
-				s =u"[keyword]:{0}".format(lk[0])
+				s =u"[{0}.keyword]:{1}".format(i,lk[0])
 				self.dirs.insert(END,s)
 				self.dirs.itemconfig(END,fg=my_color_blue)
 				issue_category = lk[5].decode("gb2312")#.encode("utf-8")
 				#s =u"issue category:---{0}---".format(lk[4])
 				s =u"[Issue Category]:{0}".format(issue_category)
 				self.dirs.insert(END,s)
-				s =u"[Occurences]:{0}".format(nn)
+				s =u"[File Occurence]:{0}".format(nn)
 				self.dirs.insert(END,s)
 				#self.dirs.itemconfig(END,fg=my_color_blue)
 				#if lk[3].strip() != '':
@@ -856,6 +877,8 @@ class DirList(object):
 				#s = "-"*20
 				s = ' '
 				self.dirs.insert(END,s)
+		s = "-"*20 + u"totally {0} keywords occured!".format(j) + "-"*20
+		self.dirs.insert(END,s)
 		if no_find:
 			if self.keyword.get() != data_file:
 				s = u"没有发现含有关键字'{0}'的文件, No findings".format(self.keyword.get())
@@ -933,7 +956,7 @@ class DirList(object):
 				if th.is_alive():
 					self._async_raise(th.ident, SystemExit)
 
-		self.search_b.config(text='Start search',bg='white',relief='raised',state='normal')
+		self.search_b.config(text="Auto search",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
 		sla.progress_q.queue.clear()
 		l_threads = []
@@ -946,9 +969,15 @@ class DirList(object):
 
 #################progress############################
 
+def ask_quit(top):
+	if askyesno("Tip","Exit?"):
+		top.quit()
+
 def main():
 	
 	d = DirList(os.getcwd())
+	#ask to quit
+	#d.top.protocol("WM_DELETE_WINDOW",lambda :ask_quit(d.top))
 	d.top.mainloop()
 
 
