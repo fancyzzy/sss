@@ -123,29 +123,11 @@ def do_operates(path_list, keyword_list):
 	new_path_list = files_unpack(path_list)
 
 	#2. decode
+	files_decode(new_path_list)
 
 	#3. search
 	search_result = files_search(new_path_list, keyword_list)
 
-	#print "DEBUG search_result=",search_result
-	'''
-	d_result = {}
-	unpacked_file_list = []
-	for file in file_list:
-
-		if file.endswith(".tar"):
-			#unpack"
-			#unpacked_file_list.extend(new_file)
-			pass
-
-	for	file in unpacked_file_list:
-		if file.endswith(".rtrc"):
-			#decode
-			#decoded_file
-			decoded_file_list
-
-	analyse_file_list = []
-	'''
 ##############multi_operates############################
 
 
