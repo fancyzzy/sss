@@ -7,9 +7,27 @@ import my_decoder
 import sla_multi_threads as sla
 import os
 import re
+import Queue
+import collections
 #analyse_file_type = ("rtrc","bssim","txt")
 
 search_result = {}
+progress_que = Queue.Queue()
+
+
+def used_time():
+
+	duration = 0
+	ds = ''
+	if sla.interval > 1000:
+		duration = sla.interval/60.0
+		ds = "%.1f minutes"%(duration)
+	else:
+		duration = sla.interval * 1.0
+		ds = "%.1f seconds"%(duration)
+	return ds
+##############used_time()############################
+
 
 def single_file_unpack(file_name, f_delete = False):
 	'''
@@ -22,7 +40,9 @@ def single_file_unpack(file_name, f_delete = False):
 	return res
 ########single_file_unpack()#####################
 
+@sla.time_interval
 def files_unpack(path_list):
+	global progrss_que
 	print "DEBUG files unpack started"
 
 	unpack_list = [""]
@@ -31,6 +51,8 @@ def files_unpack(path_list):
 
 	error = None
 	for i in range(ln):
+		tip = "Unpacking[{0}/{1}]{2}".format(i+1,ln,path_list[i].encode('gb2312'))
+		progress_que.put(tip)
 		errors = untar_function.untar_function(path_list[i])[0]
 		if errors:
 			print "DEBUG unpack error = ",errors
@@ -48,6 +70,7 @@ def files_unpack(path_list):
 def single_file_decode(file_name):
 	my_decoder.decode_one_file(file_name)
 
+@sla.time_interval
 def files_decode(path_list):
 
 	print "DEBUG decode started"
@@ -66,14 +89,13 @@ def files_decode(path_list):
 	r = re.compile(re_rule)
 	#filter out those not necessary searched files
 
-	for file in file_list:
-		if r.search(file):
-			single_file_decode(file)
+	ln_files = len(file_list)
+	for i in range(ln_files):
+		if r.search(file_list[i]):
+			tip = "Decoding[{0}/{1}]{2}".format(i+1,ln_files,file_list[i].encode('gb2312'))
+			progress_que.put(tip)
+			single_file_decode(file_list[i])
 	#my_decoder.decode_log(file_list)
-
-
-
-
 ##############files_decode()############################
 
 
@@ -106,6 +128,7 @@ def single_file_search(file_name, keyword_list):
 #################single_file_search########################
 
 
+@sla.time_interval
 def files_search(path_list, keyword_list):
 	#global progress_q
 	global search_result
@@ -128,29 +151,47 @@ def files_search(path_list, keyword_list):
 	r = re.compile(re_rule)
 	#filter out those not necessary searched files
 
-	for file in file_list:
-		#progress_q.put(file)
-		if not r.search(file):
-			l_res = single_file_search(file,keyword_list)
+	ln_files = len(file_list)
+
+	for i in range(ln_files):
+		if not r.search(file_list[i]):
+			tip = "Searching[{0}/{1}]{2}".format(i+1,ln_files,file_list[i].encode('gb2312'))
+			progress_que.put(tip)
+			l_res = single_file_search(file_list[i],keyword_list)
 			for item in l_res:
-				search_result.setdefault(item,[]).append(file)
+				search_result.setdefault(item,[]).append(file_list[i])
 
 	print "DEBUG files search finished len(search_result)=",len(search_result)		
 	return search_result
 ###############files_search#################################
 
-
+@sla.time_interval
 def do_operates(path_list, keyword_list):
 	global search_result
+	global progress_que
+
+	progress_que.queue.clear()
 
 	#1. unpack
+	progress_que.put("Unpack start")
 	new_path_list = files_unpack(path_list)
+	progress_que.put("Unpack finished, time used = %s"%(used_time()))
 
+	tmp = sla.interval
 	#2. decode
+	progress_que.put("Decode start")
 	files_decode(new_path_list)
+	progress_que.put("Decode finished, time used = %s"%(used_time()))
 
+	tmp = tmp + sla.interval
 	#3. search
+	progress_que.put("Search start")
 	search_result = files_search(new_path_list, keyword_list)
+	progress_que.put("Search finished, time used = %s"%(used_time()))
+
+	tmp = tmp + sla.interval
+	sla.interval = tmp
+	progress_que.put("All done, time used =%s"%(used_time()))
 
 ##############multi_operates############################
 

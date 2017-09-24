@@ -464,36 +464,21 @@ class DirList(object):
 		for idx in index_list:
 			path_list.append(self.dirs.get(idx))
 
+
 		s = u"{0} is under untar process. please wait...".format(path_list)
 		self.ptext.set(s)
 		self.pro_label.update()
 		sleep(0.1)
 		
+		multi_operates.files_unpack(path_list)
 
-		for filename in path_list:
-			res = untar_function.untar_function(filename)
-			if res[0]:
-				break
-
-		ds = ''
-		if sla.interval > 1000:
-			duration = sla.interval/60.0
-			ds = "%.1f minutes"%(duration)
-		else:
-			duration = sla.interval * 1.0
-			ds = "%.1f seconds"%(duration)
-		print "Finished, time used:",ds
-		s = "untar finished, time used:{0}".format(ds)
+		s = "untar finished, time used:{0}".format(multi_operates.used_time())
 		self.ptext.set(s)
 
-		self.refresh_listbox(os.getcwd())
-
-
-		if not res[0]:
-			showinfo(title='Untar', message="Untar Succeeded!")
-		else:
-			showinfo(title='Untar', message="Untar Failed! reason=%s"%res[0])
-
+		new_path = os.path.dirname(path_list[-1])
+		print "DEBUG new_path=",new_path
+		self.refresh_listbox(new_path)
+		showinfo(title='Untar', message="Untar Finished!")
 	#########menu function###############	
 
 	###############Drag and Drop feature:########################
@@ -691,7 +676,9 @@ class DirList(object):
 	def refresh_listbox(self, dir_path):
 
 		dirlist = os.listdir(dir_path)
-		dirlist.sort()
+		#according to modified date
+		dirlist.sort
+		#print "DEBUG dirlist=",dirlist
 		os.chdir(dir_path)
 		#全部删除
 		self.dirs.delete(0, END)
@@ -714,7 +701,6 @@ class DirList(object):
 
 	def get_default_keywords(self,ev=None):
 		self.keyword.set(data_file)
-
 ############get_default_keywords()###############
 
 
@@ -728,11 +714,15 @@ class DirList(object):
 
 		if len(select_path_list) > 0:
 
+			#Check if keyword is filtered by filters or customized keyword
 			filtered_keyword_list = self.filter_keyword()
 			t = threading.Thread(target=self.auto_analyse, args=(select_path_list, filtered_keyword_list))
 			#for terminating purpose
 			l_threads.append(t)
 			t.start()	
+
+			self.start_thread_progressbar()
+
 		else:
 			print "No file selected"
 ##########start_thread_analyse()###############
@@ -753,6 +743,43 @@ class DirList(object):
 		self.popup_menu.entryconfig("Search", state="normal")
 
 ################auto_ananlyse()#########################
+
+
+	def start_thread_progressbar(self):
+		global l_threads
+		print "DEBUG start_thread_progressbar"
+
+		t = threading.Thread(target=self.progressbar)
+		l_threads.append(t)
+		t.start()
+##################start_thread_progressbar()##########
+
+
+	def progressbar(self):
+		global l_threads
+		n = 0
+		s = "Analsis begins.."
+		self.ptext.set(s)
+		#self.pro_label.update()
+
+		pq = multi_operates.progress_que
+		
+		while 1:
+			alive_number = 0
+			for thread_x in l_threads:
+				if thread_x.is_alive():
+					alive_number += 1
+			if alive_number <= 1 and pq.empty():
+				break
+			else:
+				s = pq.get()
+				self.ptext.set(s)
+				if "start" in s:
+					sleep(0.2)
+				if "finished" in s:
+					sleep(0.5)
+
+##################progressbar()################################
 
 
 	#开启一个线程进行搜索关键字，防止主线程被挂起
@@ -855,13 +882,17 @@ class DirList(object):
 		l_threads = []
 		#print 'DEBUG search finished length d_result = ',len(d_result)
 
-	def show_result(self, key_words, d_result):
+	def show_result(self, key_words, d_result, is_incompleted = False):
 	 	#写入dirs
 		self.dirs.delete(0, END)
 		self.dirs.insert(END, os.curdir)
 		no_find = True
 		s = "-"*20 + u"Searching Result" + "-"*20
+		if is_incompleted:
+			s = "-"*20 + u"Searching Result(incompleted)" + "-"*20
 		self.dirs.insert(END,s)
+		
+
 		j = 0
 		ln = len(key_words)
 		for i in range(ln):
@@ -902,6 +933,7 @@ class DirList(object):
 			else:
 				s = u"没有发现含有任何关键字, No findings"
 			self.dirs.insert(END,s)
+
 ###############show_result#######################
 
 	def show_progress(self):
@@ -946,7 +978,7 @@ class DirList(object):
 			self.ptext.set(s)
 			print "DEBUG error progress label got problems,e=",e
 			#self.pro_label.update()
-
+################progress()#################################
 
 	def _async_raise(self,tid, exctype):
 		"""raises the exception, performs cleanup if needed"""
@@ -984,6 +1016,12 @@ class DirList(object):
 		self.ptext.set(s)
 		#self.doLS()
 		sleep(0.5)
+		#if search_results have some results, printed out
+		s_re = multi_operates.search_result
+		if len(s_re) > 0:
+			filtered_keyword_list = self.filter_keyword()
+			self.show_result(keyword_list, s_re, True)
+
 
 #################progress############################
 
