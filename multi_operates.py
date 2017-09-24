@@ -3,8 +3,10 @@
 
 import copy
 import untar_function
+import my_decoder
 import sla_multi_threads as sla
 import os
+import re
 #analyse_file_type = ("rtrc","bssim","txt")
 
 search_result = {}
@@ -43,12 +45,34 @@ def files_unpack(path_list):
 	return new_path_list
 ######################files_unpack()####################
 
-
 def single_file_decode(file_name):
-	pass
+	my_decoder.decode_one_file(file_name)
 
 def files_decode(path_list):
-	pass
+
+	print "DEBUG decode started"
+	file_list = []
+	for path in path_list:
+		file_list.extend(sla.get_file_list(path,[]))
+
+	#filter out those not necessary searched files
+	sufx_list = [r".rtrc", r".rtrc_backup"]
+	ln = len(sufx_list)
+
+	for i in range(ln):
+		sufx_list[i] = "({0})$".format(sufx_list[i])
+
+	re_rule = "|".join(sufx_list)
+	r = re.compile(re_rule)
+	#filter out those not necessary searched files
+
+	for file in file_list:
+		if r.search(file):
+			single_file_decode(file)
+	#my_decoder.decode_log(file_list)
+
+
+
 
 ##############files_decode()############################
 
@@ -94,14 +118,23 @@ def files_search(path_list, keyword_list):
 		file_list.extend(sla.get_file_list(path,[]))
 
 	#filter out those not necessary searched files
+	sufx_list = [r".rtrc", r".rtrc_backup"]
+	ln = len(sufx_list)
+
+	for i in range(ln):
+		sufx_list[i] = "({0})$".format(sufx_list[i])
+
+	re_rule = "|".join(sufx_list)
+	r = re.compile(re_rule)
 	#filter out those not necessary searched files
 
 	for file in file_list:
 		#progress_q.put(file)
+		if not r.search(file):
+			l_res = single_file_search(file,keyword_list)
+			for item in l_res:
+				search_result.setdefault(item,[]).append(file)
 
-		l_res = single_file_search(file,keyword_list)
-		for item in l_res:
-			search_result.setdefault(item,[]).append(file)
 	print "DEBUG files search finished len(search_result)=",len(search_result)		
 	return search_result
 ###############files_search#################################
@@ -109,15 +142,6 @@ def files_search(path_list, keyword_list):
 
 def do_operates(path_list, keyword_list):
 	global search_result
-	'''
-	1. Gives the path list to unpack all the files
-	under the paths in list and also the subfolder,
-	upacked new folder files 
-	2. Decode all the files under the paths in the 
-	list
-	3. search all the files under the paths in the
-	list 
-	'''
 
 	#1. unpack
 	new_path_list = files_unpack(path_list)

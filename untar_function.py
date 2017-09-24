@@ -12,50 +12,57 @@ unpack_list = ['.tar.gz','.gz','.tar','.tgz']
 def untar_file(file_name, delet_cpfi=False):
 	S = None
 	new_file = ""
-	path = os.path.dirname(file_name)
 #	for file_name in file_list:
 	a = re.search(r'.tar.gz$', file_name)
 	g = re.search(r'.gz$', file_name)
 	r = re.search(r'.tar$', file_name)
 	t = re.search(r'.tgz$', file_name)
+	#z = re.search(r'.zip$', file_name)
+	#rar = re.search(r'.rar$', file_name')
 	if a or t:
 		g = None
 #		print a,g, r, t		
 	if a:
+		new_file = file_name.rstrip(a.group(0)) 
 		tar = tarfile.open(file_name,"r:gz")
-		S = tar.extractall(path)
+		S = tar.extractall(new_file)
 		tar.close()
 		if delet_cpfi:
 			os.remove(file_name)
-		new_file = file_name.rstrip(a.group(0)) 
 
 	elif g:
-		f_name = file_name.rstrip(".gz")
+		new_file = file_name.rstrip(g.group(0)) 
+		if os.path.exists(new_file):
+			pass
+		else:
+			os.mkdir(new_file)
+			
+		new_file_name = os.path.join(new_file,os.path.basename(new_file))
 		g_file = gzip.GzipFile(file_name)  	 
-		S = open(f_name, "wb+").write(g_file.read())
+		S = open(new_file_name, "wb+").write(g_file.read())
 		g_file.close()
 		if delet_cpfi:
 			os.remove(file_name)
-		new_file = file_name.rstrip(g.group(0)) 
 
 	elif r:
+		new_file = file_name.rstrip(r.group(0)) 
+
 		tar = tarfile.open(file_name)
 		names = tar.getnames()  
 
 		for name in names:
-			S = tar.extract(name, path)
+			S = tar.extract(name, new_file)
 		tar.close()
 		if delet_cpfi:
 			os.remove(file_name)
-		new_file = file_name.rstrip(r.group(0)) 
 
 	elif t:
+		new_file = file_name.rstrip(t.group(0)) 
 		tar = tarfile.open(file_name)
-		S = tar.extractall(path)
+		S = tar.extractall(new_file)
 		tar.close()
 		if delet_cpfi:
 			os.remove(file_name)
-		new_file = file_name.rstrip(t.group(0)) 
 
 	return S,new_file
 

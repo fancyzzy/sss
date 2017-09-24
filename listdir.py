@@ -136,7 +136,7 @@ class DirList(object):
 		#This is for keywords.csv data
 		self.keyword.set(data_file)
 		self.search_entry.bind('<Return>', self.get_default_keywords)
-		self.search_b = Button(self.search_fm, text="Auto search", command=self.auto_analyse, activeforeground\
+		self.search_b = Button(self.search_fm, text="Auto search", command=self.start_thread_analyse, activeforeground\
 			='white', activebackground='orange',bg = 'white', relief='raised')
 		self.search_entry.focus_set()
 
@@ -715,12 +715,10 @@ class DirList(object):
 	def get_default_keywords(self,ev=None):
 		self.keyword.set(data_file)
 
+############get_default_keywords()###############
 
-	def auto_analyse(self):
-		'''
-		one key automated analysing the directory
-		'''
-		#global search_result
+
+	def start_thread_analyse(self):
 
 		select_path_list = []
 		index_list = self.dirs.curselection()
@@ -728,13 +726,32 @@ class DirList(object):
 			select_path_list.append(self.dirs.get(idx))
 
 
-		filtered_keyword_list = self.filter_keyword()
-		#multi_operates 1.unpack, 2.decode, 3.search
-		multi_operates.do_operates(select_path_list, filtered_keyword_list)
+		if len(select_path_list) > 0:
+
+			filtered_keyword_list = self.filter_keyword()
+			t = threading.Thread(target=self.auto_analyse, args=(select_path_list, filtered_keyword_list))
+			#for terminating purpose
+			l_threads.append(t)
+			t.start()	
+		else:
+			print "No file selected"
+##########start_thread_analyse()###############
 
 
-		self.show_result(filtered_keyword_list, multi_operates.search_result)
+	def auto_analyse(self, path_list, keyword_list):
+		'''
+		one key automated analysing the directory
+		'''
+		self.search_b.config(text="Please wait",bg='orange',relief='sunken',state='disabled')
+		self.popup_menu.entryconfig("Search", state="disable")
+
+		########multi_operates 1.unpack, 2.decode, 3.search###############
+		multi_operates.do_operates(path_list, keyword_list)
+		self.show_result(keyword_list, multi_operates.search_result)
 		
+		self.search_b.config(text="Auto search",bg='white',relief='raised',state='normal')
+		self.popup_menu.entryconfig("Search", state="normal")
+
 ################auto_ananlyse()#########################
 
 
@@ -951,10 +968,11 @@ class DirList(object):
 		强制终止线程
 		'''
 		global l_threads
+		print "DEBUG l_threads=",l_threads
 		if l_threads:
-			for th in l_threads:
-				if th.is_alive():
-					self._async_raise(th.ident, SystemExit)
+			for t in l_threads:
+				if t.is_alive():
+					self._async_raise(t.ident, SystemExit)
 
 		self.search_b.config(text="Auto search",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
@@ -964,7 +982,7 @@ class DirList(object):
 		#self.ptext.set(s)
 		s = "stopped"
 		self.ptext.set(s)
-		self.doLS()
+		#self.doLS()
 		sleep(0.5)
 
 #################progress############################
