@@ -136,7 +136,7 @@ class DirList(object):
 		#This is for keywords.csv data
 		self.keyword.set(data_file)
 		self.search_entry.bind('<Return>', self.get_default_keywords)
-		self.search_b = Button(self.search_fm, text="Auto search", command=self.start_thread_analyse, activeforeground\
+		self.search_b = Button(self.search_fm, text="Auto analyse", command=self.start_thread_analyse, activeforeground\
 			='white', activebackground='orange',bg = 'white', relief='raised')
 		self.search_entry.focus_set()
 
@@ -270,7 +270,7 @@ class DirList(object):
 		'''
 
 	def menu_howto(self):
-		s = askyesno(title='How To', message = "把要分析的trace文件夹直接拖放到显示目录框中，点击'Auto search'\n简单吧?\n")
+		s = askyesno(title='How To', message = "把要分析的trace文件夹直接拖放到显示目录框中，点击'Auto analyse'\n简单吧?\n")
 		if s:
 			print s
 		else:
@@ -739,7 +739,7 @@ class DirList(object):
 		multi_operates.do_operates(path_list, keyword_list)
 		self.show_result(keyword_list, multi_operates.search_result)
 		
-		self.search_b.config(text="Auto search",bg='white',relief='raised',state='normal')
+		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
 
 ################auto_ananlyse()#########################
@@ -876,7 +876,7 @@ class DirList(object):
 				self.searcher.total_work,self.keyword.get(),sla.interval)
 			self.ptext.set(s)
 
-		self.search_b.config(text="Auto search",bg='white',relief='raised',state='normal')
+		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
 		#clean the threads list:
 		l_threads = []
@@ -1009,7 +1009,7 @@ class DirList(object):
 				if t.is_alive():
 					self._async_raise(t.ident, SystemExit)
 
-		self.search_b.config(text="Auto search",bg='white',relief='raised',state='normal')
+		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
 		sla.progress_q.queue.clear()
 		#list clear way:

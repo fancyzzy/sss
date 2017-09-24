@@ -43,7 +43,6 @@ def single_file_unpack(file_name, f_delete = False):
 @sla.time_interval
 def files_unpack(path_list):
 	global progrss_que
-	print "DEBUG files unpack started"
 
 	unpack_list = [""]
 	ln = len(path_list)
@@ -73,7 +72,6 @@ def single_file_decode(file_name):
 @sla.time_interval
 def files_decode(path_list):
 
-	print "DEBUG decode started"
 	file_list = []
 	for path in path_list:
 		file_list.extend(sla.get_file_list(path,[]))
@@ -133,7 +131,6 @@ def files_search(path_list, keyword_list):
 	#global progress_q
 	global search_result
 	
-	print 'DEBUG files search started'
 	search_result = {}
 
 	file_list = []
@@ -161,7 +158,6 @@ def files_search(path_list, keyword_list):
 			for item in l_res:
 				search_result.setdefault(item,[]).append(file_list[i])
 
-	print "DEBUG files search finished len(search_result)=",len(search_result)		
 	return search_result
 ###############files_search#################################
 
