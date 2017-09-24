@@ -934,6 +934,9 @@ class DirList(object):
 				s = u"没有发现含有任何关键字, No findings"
 			self.dirs.insert(END,s)
 
+		#clear the search result which can not be used by terminate thread function
+		d_result.clear()
+
 ###############show_result#######################
 
 	def show_progress(self):
@@ -1009,13 +1012,13 @@ class DirList(object):
 		self.search_b.config(text="Auto search",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
 		sla.progress_q.queue.clear()
-		l_threads = []
+		#list clear way:
+		l_threads[:] = []
 		#s = "{0} files, search filters: {1}".format(self.searcher.total_work,self.search_filter)
 		#self.ptext.set(s)
 		s = "stopped"
 		self.ptext.set(s)
 		#self.doLS()
-		sleep(0.5)
 		#if search_results have some results, printed out
 		s_re = multi_operates.search_result
 		if len(s_re) > 0:
