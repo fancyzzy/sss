@@ -863,9 +863,9 @@ class DirList(object):
 
 	def show_result(self, key_words, d_result, is_incompleted = False):
 	 	#写入dirs
-		print "show_result start, current_dir=",current_dir
 		self.dirs.delete(0, END)
 		current_dir = os.curdir.encode('gb2312').decode('utf-8')
+		print "show_result start, current_dir=",current_dir
 		#self.dirs.insert(END, os.curdir)
 		self.dirs.insert(END, current_dir)
 		no_find = True

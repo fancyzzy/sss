@@ -105,19 +105,38 @@ def single_file_search(file_name, keyword_list):
 	#[1:] means to get rid of the column name
 
 	l_res = []
+
+	ln = len(keyword_list)
+	is_custom_search = False
+	if ln == 1:
+		is_custom_search = True
+	'''
+	keyword_re_list = []
+	for i in range(len(keyword_list)):
+		keyword_re_list.append(re.compile(keyword_list[i][0]))
+	'''
+
 	try:
 		with open(file_name) as fobj:
 			while True:
 				#here we can use this bytes to do progressbar
 				buff = fobj.read(201700)
+				#buff = fobj.readline()
 				if buff == '':
 					break
 				else:
-					for keyword in keyword_list:
-						if keyword[0] not in l_res and keyword[0] in buff:
-							l_res.append(keyword[0])
+					for i in range(ln):
+						'''
+						if keyword_list[i][0] not in l_res:
+							if keyword_re_list[i].search(buff, re.I):
+								l_res.append(keyword_list[i][0])
+						'''
+						if not is_custom_search:
+							if keyword_list[i][0] not in l_res and keyword_list[i][0] in buff:
+								l_res.append(keyword_list[i][0])
 						else:
-							continue
+							if keyword_list[i][0] not in l_res and keyword_list[i][0].lower() in buff.lower():
+								l_res.append(keyword_list[i][0])
 	except Exception as e:
 		#logger.warning(e)
 		print "DEBUG multi_operates.py,here, e=",e
