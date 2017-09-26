@@ -227,7 +227,10 @@ class DirList(object):
 
 
 		if initdir:
-			self.cwd.set(os.getcwd())
+			#self.cwd.set(os.getcwd())
+			#desktop is default path
+			#print "DEBUG sla.desktop_path=",sla.desktop_path
+			self.cwd.set(sla.desktop_path)
 			self.menu_selectall()
 			self.doLS()
 
@@ -401,6 +404,7 @@ class DirList(object):
 		self.ptext.set(s)
 		self.refresh_listbox(os.getcwd())
 		showinfo(title='Decode', message="Decode finished.")
+###################my_decode()####################
 
 	def my_repeat(self, ev=None):
 		'''
@@ -430,7 +434,6 @@ class DirList(object):
 		print "Finished, time used:",ds
 		s = "Repetition statistic finished, time used:{0}".format(ds)
 		self.ptext.set(s)
-		#self.refresh_listbox(os.getcwd())
 
 		self.dirs.delete(0, END)
 		self.dirs.insert(END, os.curdir)
@@ -476,9 +479,10 @@ class DirList(object):
 		self.ptext.set(s)
 
 		new_path = os.path.dirname(path_list[-1])
-		print "DEBUG new_path=",new_path
 		self.refresh_listbox(new_path)
 		showinfo(title='Untar', message="Untar Finished!")
+#####################untar()#########################
+
 	#########menu function###############	
 
 	###############Drag and Drop feature:########################
@@ -617,6 +621,10 @@ class DirList(object):
 			check = os.curdir
 			print "DEBUG setDirAnd Go path error"
 
+		#print "setDirAndGo DEBUG type(path)=",type(path)
+		#bug 11
+		path = path.decode('utf-8')
+		#print "setDirAndGo DEBUG type(path)=",type(path)
 		self.cwd.set(path)
 		#self.syn_dir(path)
 		self.doLS()
@@ -626,6 +634,7 @@ class DirList(object):
 		print "doLS called"
 		error = ''
 		tdir = self.cwd.get()
+		#print "DEBUG type(tdir)=",type(tdir)
 		if not tdir:
 			tdir = os.curdir
 		if not os.path.exists(tdir):
@@ -633,6 +642,7 @@ class DirList(object):
 		elif not os.path.isdir(tdir):
 			error = tdir + ':is not a directory!'
 			if os.path.isfile(tdir):
+				#bug11
 				#print "This is a file!"	
 				#here double click on a file and open it
 				#print "DEBUG type(tdir)=",type(tdir)
@@ -675,23 +685,27 @@ class DirList(object):
 
 	def refresh_listbox(self, dir_path):
 
+		#print "DEBUG dir_path=",dir_path
+		#print"DEBUG type(dir_path) = ",type(dir_path)
 		dirlist = os.listdir(dir_path)
-		#according to modified date
-		dirlist.sort
-		#print "DEBUG dirlist=",dirlist
+		dirlist.sort()
 		os.chdir(dir_path)
 		#全部删除
 		self.dirs.delete(0, END)
 		#当前目录'.'
 		#self.dirs.insert(END, os.curdir)
 		#上一级目录'..'
-		self.dirs.insert(END, os.pardir)
+		parent_dir = os.pardir.encode('gb2312').decode('utf-8')
+		self.dirs.insert(END, parent_dir)
+
+		#bug 11
+		#print"DEBUG type(dirlist[0]) = ",type(dirlist[0])
+		v_cwd = os.getcwd().decode('gb2312').encode('utf-8')
 		for eachFile in dirlist:
-			s = os.path.join(os.getcwd(),eachFile)
+			#s = os.path.join(os.getcwd(),eachFile)
+			s = os.path.join(v_cwd,eachFile.encode('utf-8'))
 			#在listbox中显示中文, windows support gbk or gb2123 coding
 			#bug5
-			#s = s.decode('gb2312')
-			s = s.decode('gb2312').encode('utf-8')
 			self.dirs.insert(END, s)
 			if os.path.isdir(s):
 				self.dirs.itemconfig(END,fg= my_color_blue_office)
@@ -758,7 +772,7 @@ class DirList(object):
 	def progressbar(self):
 		global l_threads
 		n = 0
-		s = "Analsis begins.."
+		s = "Analsis begins"
 		self.ptext.set(s)
 		#self.pro_label.update()
 
@@ -885,7 +899,9 @@ class DirList(object):
 	def show_result(self, key_words, d_result, is_incompleted = False):
 	 	#写入dirs
 		self.dirs.delete(0, END)
-		self.dirs.insert(END, os.curdir)
+		current_dir = os.curdir.encode('gb2312').decode('utf-8')
+		#self.dirs.insert(END, os.curdir)
+		self.dirs.insert(END, current_dir)
 		no_find = True
 		s = "-"*20 + u"Searching Result" + "-"*20
 		if is_incompleted:
