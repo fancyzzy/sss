@@ -68,6 +68,7 @@ def untar_file(file_name, delet_cpfi=False):
 
 @sla.time_interval
 def untar_function(filename, delet_fi=False):
+	s = (None, "")
 	if os.path.isfile(filename):
 		s = untar_file(filename, delet_fi)
 		if s[0]:

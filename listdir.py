@@ -25,39 +25,6 @@ import repeat_log
 import multi_operates
 #print sys.getdefaultencoding()
 
-'''
-reload(sys)
-sys.setdefaultencoding('utf8')
-print sys.getdefaultencoding()
-'''
-
-'''
-my_color_blue = '#%02x%02x%02x' % (51,153,255)
-#my_color_green = '#%02x%02x%02x' % (128,216,10)
-my_color_green = '#%02x%02x%02x' % (192,233,17)
-#for terminate searching
-l_threads = []
-data_file = 'keywords.csv'
-resource = "resource"
-ico_file = "auto_searcher.ico"
-print "path = ",os.path.join(resource,ico_file)
-icon_path = os.path.join(os.getcwd(),os.path.join(resource,ico_file))
-
-#This is for pyinstaller
-if hasattr(sys, "_MEIPASS"):
-	print "sys._MEIPASS = ",sys._MEIPASS
-else:
-	print "os.path.abspath = ",os.path.abspath(".")
-
-#需要pyinstaller -F xx.spec打包成一个.exe的时候用这个函数
-#否则，正常打包不要用这个函数定义资源文件的路径
-def resource_path(relative_path):
-	if hasattr(sys, "_MEIPASS"):
-		base_path = sys._MEIPASS
-	else:
-		base_path = os.path.abspath(".")
-	return os.path.join(base_path, relative_path)
-'''
 
 def call_proc(cmd):
 	'''
@@ -106,8 +73,8 @@ class DirList(object):
 		self.dir_fm.pack()	
 
 		self.dirfm = Frame(self.top)
-		self.dirsby = Scrollbar(self.dirfm)
-		self.dirsby.pack(side=RIGHT, fill=Y)
+		#self.dirsby = Scrollbar(self.dirfm)
+		#self.dirsby.pack(side=RIGHT, fill=Y)
 		#self.dirsbx = Scrollbar(self.dirfm,orient=HORIZONTAL)
 		#self.dirsbx.pack(side=BOTTOM, fill=X)
 
@@ -119,12 +86,12 @@ class DirList(object):
 			exportselection=1,listvariable=self.list_v)
 		#2017.8.23 BUG: 滚动轴导致程序挂掉，原因可能是由于多线程子线程更新GUI界面
 		#产生内部错误导致
-		#self.dirs['yscrollcommand'] = self.dirsb.set
+		#self.dirs['yscrollcommand'] = self.dirsbx.set
 		#self.dirs['xscrollcommand'] = self.dirsbx.set
 		self.dirs.bind('<Double-1>', self.setDirAndGo)
 		self.dirs.bind('<1>', lambda event:self.listbox_click(event))
 		#self.dirs.bind('<3>', self.listbox_Rclick)
-		self.dirsby.config(command=self.dirs.yview)
+		#self.dirsby.config(command=self.dirs.yview)
 		#self.dirsbx.config(command=self.dirs.xview)
 		self.dirs.pack(expand=YES, fill=BOTH)
 		self.dirfm.pack(expand=YES,fill=BOTH)
@@ -621,12 +588,9 @@ class DirList(object):
 			check = os.curdir
 			print "DEBUG setDirAnd Go path error"
 
-		print "setDirAndGo Debug path=",path
-		print "setDirAndGo DEBUG type(path)=",type(path)
 		#bug 11
 		if "str" in str(type(path)):
 			path = path.decode('utf-8')
-		print "setDirAndGo DEBUG type(path)=",type(path)
 		self.cwd.set(path)
 		#self.syn_dir(path)
 		self.doLS()
@@ -636,8 +600,6 @@ class DirList(object):
 		print "doLS called"
 		error = ''
 		tdir = self.cwd.get()
-		print "DEBUG tdir=",tdir
-		print "DEBUG type(tdir)=",type(tdir)
 		if not tdir:
 			tdir = os.curdir
 		if not os.path.exists(tdir):
@@ -901,6 +863,7 @@ class DirList(object):
 
 	def show_result(self, key_words, d_result, is_incompleted = False):
 	 	#写入dirs
+		print "show_result start, current_dir=",current_dir
 		self.dirs.delete(0, END)
 		current_dir = os.curdir.encode('gb2312').decode('utf-8')
 		#self.dirs.insert(END, os.curdir)
@@ -940,7 +903,14 @@ class DirList(object):
 				#	self.dirs.insert(END,s)
 				for file in d_result[lk[0]]:
 					s = file
-					self.dirs.insert(END,s)
+					if not s:
+						print "DEBUG s= None:",s
+					try:
+						sleep(0.01)
+						self.dirs.insert(END,s)
+					except Exception as e:
+						print 'error here e=',e
+						print "insert(END,s) where s=",s
 				#s = "-"*20
 				s = ' '
 				self.dirs.insert(END,s)
