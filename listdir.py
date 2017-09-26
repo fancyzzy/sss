@@ -621,10 +621,12 @@ class DirList(object):
 			check = os.curdir
 			print "DEBUG setDirAnd Go path error"
 
-		#print "setDirAndGo DEBUG type(path)=",type(path)
+		print "setDirAndGo Debug path=",path
+		print "setDirAndGo DEBUG type(path)=",type(path)
 		#bug 11
-		path = path.decode('utf-8')
-		#print "setDirAndGo DEBUG type(path)=",type(path)
+		if "str" in str(type(path)):
+			path = path.decode('utf-8')
+		print "setDirAndGo DEBUG type(path)=",type(path)
 		self.cwd.set(path)
 		#self.syn_dir(path)
 		self.doLS()
@@ -634,7 +636,8 @@ class DirList(object):
 		print "doLS called"
 		error = ''
 		tdir = self.cwd.get()
-		#print "DEBUG type(tdir)=",type(tdir)
+		print "DEBUG tdir=",tdir
+		print "DEBUG type(tdir)=",type(tdir)
 		if not tdir:
 			tdir = os.curdir
 		if not os.path.exists(tdir):
