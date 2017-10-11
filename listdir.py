@@ -99,9 +99,12 @@ class DirList(object):
 
 		self.search_fm = Frame(self.top)
 		self.search_label = Label(self.search_fm, text="Find for: ")
-		self.search_entry = Entry(self.search_fm, width=30,textvariable=self.keyword)
+
+		#search keyword entry -> combobox
+		#self.search_entry = Entry(self.search_fm, width=30,textvariable=self.keyword)
+		self.search_entry = ttk.Combobox(self.search_fm, width=30,textvariable=self.keyword)
 		#This is for keywords.csv data
-		self.keyword.set(data_file)
+		self.keyword.set(PREDIFINED_KEYWORD)
 		self.search_entry.bind('<Return>', self.get_default_keywords)
 		self.search_b = Button(self.search_fm, text="Auto analyse", command=self.start_thread_analyse, activeforeground\
 			='white', activebackground='orange',bg = 'white', relief='raised')
@@ -159,6 +162,9 @@ class DirList(object):
 		#decode menue
 		menubar.add_command(label = 'RTTP', command=self.menu_decode_log)
 
+		#decode menue
+		menubar.add_command(label = 'FTP', command=self.menu_ftp_download_log)
+
 		#about menue
 		about_menu = Menu(menubar, tearoff = 0)
 		about_menu.add_command(label='About', command=self.menu_about)
@@ -207,7 +213,7 @@ class DirList(object):
 	############# menu function ###############
 	def menu_keywords(self):
 
-		kdir = os.path.join(sla.working_path,data_file)
+		kdir = os.path.join(sla.working_path,PREDIFINED_KEYWORD)
 		cmd = [kdir]
 		try:
 			call_proc(cmd)
@@ -224,6 +230,10 @@ class DirList(object):
 		#sleep(3)
 		#decode_window.decode_top.destroy()
 		#decode_window.decode_top.bell()
+
+	def menu_ftp_download_log(self):
+		print "hello"
+		pass
 
 	def log_translate(self):
 		showinfo(title='Log Translate',message="To be done...")
@@ -255,7 +265,7 @@ class DirList(object):
 		filtered_keyword_list = copy.deepcopy(keyword_list)
 
 		k = self.keyword.get()
-		if k == data_file:
+		if k == PREDIFINED_KEYWORD:
 			ln = len(keyword_list)
 			for i in xrange(ln):
 				if keyword_list[i][1] in self.d_filter:
@@ -285,7 +295,7 @@ class DirList(object):
 		s = "{0} files, search filters: {1}".format(self.searcher.total_work,self.search_filter)
 		self.ptext.set(s)
 
-		self.keyword.set(data_file)
+		self.keyword.set(PREDIFINED_KEYWORD)
 
 	def menu_selectall(self):
 		all_true_flag = True
@@ -307,7 +317,7 @@ class DirList(object):
 
 		s = "{0} files, search filters: {1}".format(self.searcher.total_work,self.search_filter)
 		self.ptext.set(s)
-		self.keyword.set(data_file)
+		self.keyword.set(PREDIFINED_KEYWORD)
 		#print "filter:{0},value:{1}".format(self.lf[i],self.d_filter[self.lf[i]].get())
 
 	def menu_popup(self,event,m):
@@ -679,7 +689,7 @@ class DirList(object):
 
 
 	def get_default_keywords(self,ev=None):
-		self.keyword.set(data_file)
+		self.keyword.set(PREDIFINED_KEYWORD)
 ############get_default_keywords()###############
 
 
@@ -715,6 +725,7 @@ class DirList(object):
 		self.popup_menu.entryconfig("Search", state="disable")
 
 		########multi_operates 1.unpack, 2.decode, 3.search###############
+		print('Auto analyse starts')
 		multi_operates.do_operates(path_list, keyword_list)
 		self.show_result(keyword_list, multi_operates.search_result)
 		
@@ -766,7 +777,7 @@ class DirList(object):
 		global l_threads
 
 		#There is a problem when no filter a crash will occur after do_search
-		if self.search_filter[0] == 'none' and self.keyword.get() == data_file:
+		if self.search_filter[0] == 'none' and self.keyword.get() == PREDIFINED_KEYWORD:
 			showwarning(title='No filters', message="No keywords to search!")
 			#self._Thread__stop()
 			return
@@ -796,7 +807,7 @@ class DirList(object):
 		s = ""
 		#default multi keywords search
 		thread_num=1
-		if k == data_file:
+		if k == PREDIFINED_KEYWORD:
 
 			self.show_progress()
 
@@ -863,9 +874,9 @@ class DirList(object):
 
 	def show_result(self, key_words, d_result, is_incompleted = False):
 	 	#写入dirs
+	 	print('show result start')
 		self.dirs.delete(0, END)
 		current_dir = os.curdir.encode('gb2312').decode('utf-8')
-		print "show_result start, current_dir=",current_dir
 		#self.dirs.insert(END, os.curdir)
 		self.dirs.insert(END, current_dir)
 		no_find = True
@@ -917,7 +928,7 @@ class DirList(object):
 		s = "-"*20 + u"totally {0} keywords occured!".format(j) + "-"*20
 		self.dirs.insert(END,s)
 		if no_find:
-			if self.keyword.get() != data_file:
+			if self.keyword.get() != PREDIFINED_KEYWORD:
 				s = u"没有发现含有关键字'{0}'的文件, No findings".format(self.keyword.get())
 			else:
 				s = u"没有发现含有任何关键字, No findings"

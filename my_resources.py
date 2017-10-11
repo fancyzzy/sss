@@ -13,7 +13,7 @@ my_color_blue_office ='#%02x%02x%02x' % (43,87,154)
 my_color_green = '#%02x%02x%02x' % (192,233,17)
 #for terminate searching
 l_threads = []
-data_file = 'keywords.csv'
+PREDIFINED_KEYWORD = 'keywords.csv'
 resource = "resource"
 ico_file = "auto_searcher.ico"
 print "path = ",os.path.join(resource,ico_file)
@@ -38,7 +38,7 @@ def read_keyword_file(keyword_file):
 
 	return l_key
 ###############read_keyword_file#####################
-keyword_list = read_keyword_file(data_file)[1:]
+keyword_list = read_keyword_file(PREDIFINED_KEYWORD)[1:]
 filtered_keyword_list = keyword_list[:]
 
 

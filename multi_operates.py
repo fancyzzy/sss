@@ -48,6 +48,8 @@ def files_unpack(path_list):
 	ln = len(path_list)
 	new_path_list = copy.deepcopy(path_list)
 
+	print('files unpack start')
+
 	error = None
 	for i in range(ln):
 		tip = "Unpacking[{0}/{1}]{2}".format(i+1,ln,path_list[i].encode('gb2312'))
@@ -75,6 +77,8 @@ def files_decode(path_list):
 	file_list = []
 	for path in path_list:
 		file_list.extend(sla.get_file_list(path,[]))
+
+	print('files decode start')
 
 	#filter out those not necessary searched files
 	sufx_list = [r".rtrc", r".rtrc_backup"]
@@ -146,7 +150,7 @@ def single_file_search(file_name, keyword_list):
 
 
 @sla.time_interval
-def files_search(path_list, keyword_list):
+def files_search(path_list, keyword_list, start_stop = None):
 	#global progress_q
 	global search_result
 	
@@ -156,22 +160,30 @@ def files_search(path_list, keyword_list):
 	for path in path_list:
 		file_list.extend(sla.get_file_list(path,[]))
 
+	#start_stop = '20171009_222222_20171009_333333'
+	#file_list = filter_start_stop(file_list, filter_word)
+
+	print('files search start')
+
 	#filter out those not necessary searched files
-	sufx_list = [r".rtrc", r".rtrc_backup"]
-	ln = len(sufx_list)
+	not_search_sufx_list = [r".rtrc", r".rtrc_backup"]
+	ln = len(not_search_sufx_list)
 
 	for i in range(ln):
-		sufx_list[i] = "({0})$".format(sufx_list[i])
+		not_search_sufx_list[i] = "({0})$".format(not_search_sufx_list[i])
 
-	re_rule = "|".join(sufx_list)
-	r = re.compile(re_rule)
+	re_rule = "|".join(not_search_sufx_list)
+	re_not_sufx_list = re.compile(re_rule)
 	#filter out those not necessary searched files
 
 	ln_files = len(file_list)
 
 	for i in range(ln_files):
-		if not r.search(file_list[i]):
-			tip = "Searching[{0}/{1}]{2}".format(i+1,ln_files,file_list[i].encode('gb2312'))
+		if not re_not_sufx_list.search(file_list[i]):
+			s = file_list[i]
+			if 'unicode' in str(type(s)):
+				s = s.encode('gb2312')
+			tip = "Searching[{0}/{1}]{2}".format(i+1,ln_files,s)
 			progress_que.put(tip)
 			l_res = single_file_search(file_list[i],keyword_list)
 			for item in l_res:
