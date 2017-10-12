@@ -122,6 +122,7 @@ class DirList(object):
 		self.combo_search.focus_set()
 		self.search_label.pack(side=LEFT)
 		self.combo_search.pack(side=LEFT)
+
 		#terminate button
 		self.stop_b = Button(self.search_fm, text="Stop", command=self.terminate_threads)
 		self.stop_b.pack(side=RIGHT)
@@ -274,29 +275,23 @@ class DirList(object):
 		'''
 		filter the keyword list according to d_filter
 		'''
-		global keyword_list
+		global PRE_KEYWORD_LIST
+		pre_k = PRE_KEYWORD_LIST
 
-		filtered_keyword_list = copy.deepcopy(keyword_list)
+		filtered_keyword_list = copy.deepcopy(pre_k)
 
 		k = self.keyword.get()
 		if k == PREDIFINED_KEYWORD:
-			ln = len(keyword_list)
+			ln = len(pre_k)
 			for i in xrange(ln):
-				if keyword_list[i][1] in self.d_filter:
-					if self.d_filter[keyword_list[i][1]].get()=='0':
-						filtered_keyword_list.remove(keyword_list[i])
+				if pre_k[i][1] in self.d_filter:
+					if self.d_filter[pre_k[i][1]].get()=='0':
+						filtered_keyword_list.remove(pre_k[i])
 				#print 'DEBUG filtered keyword_list=',filtered_keyword_list
 
-		#only one keyword in the list
-		#because the keyword entry has one customized keyword rather
-		#thant 'keywords.csv'
 		else:
 			filtered_keyword_list[0][0] = k
-			#issue category
-			#here is better to use namedtuple
 			filtered_keyword_list[0][5] = "customized keyword"
-
-
 			return filtered_keyword_list[:1]
 
 		return filtered_keyword_list
@@ -740,7 +735,6 @@ class DirList(object):
 		self.popup_menu.entryconfig("Search", state="disable")
 
 		########multi_operates 1.unpack, 2.decode, 3.search###############
-		print('Auto analyse starts')
 		multi_operates.do_operates(path_list, keyword_list)
 		self.show_result(keyword_list, multi_operates.search_result)
 		
@@ -752,8 +746,6 @@ class DirList(object):
 
 	def start_thread_progressbar(self):
 		global l_threads
-		print "DEBUG start_thread_progressbar"
-
 		t = threading.Thread(target=self.progressbar)
 		l_threads.append(t)
 		t.start()
@@ -762,12 +754,13 @@ class DirList(object):
 
 	def progressbar(self):
 		global l_threads
+
 		n = 0
 		s = "Analsis begins"
 		self.ptext.set(s)
 		#self.pro_label.update()
 
-		pq = multi_operates.progress_que
+		pq = multi_operates.PROGRESS_QUE
 		
 		while 1:
 			alive_number = 0
@@ -777,13 +770,19 @@ class DirList(object):
 			if alive_number <= 1 and pq.empty():
 				break
 			else:
-				s = pq.get()
+				#bug 11
+				#s = pq.get()
+				s = pq.get(True,20)
 				self.ptext.set(s)
 				if "start" in s:
 					sleep(0.2)
 				if "finished" in s:
 					sleep(0.5)
 
+				#bug 11
+				if "All done" in s:
+					break
+		return
 ##################progressbar()################################
 
 
@@ -954,10 +953,8 @@ class DirList(object):
 
 		if self.keyword.get() != PREDIFINED_KEYWORD:
 			self.ck_list.append(self.keyword.get())
-			print "DEBUG ck_list=",self.ck_list
 			value = list(self.combo_search['values'])
 			value.insert(0, self.keyword.get())
-			print "DEBUG value=",value
 			self.combo_search['values'] = value
 
 
@@ -978,7 +975,6 @@ class DirList(object):
 		#t.join()
 
 	def progress(self):
-		print "DEBUG progress started"
 		n = 0
 		s = ""
 		#这里不知道为什么progress_q有东西拿不出来block住了
@@ -1030,7 +1026,21 @@ class DirList(object):
 		强制终止线程
 		'''
 		global l_threads
-		print "DEBUG l_threads=",l_threads
+		global PRE_KEYWORD_LIST
+		print "DEBUG l_threads=",id(l_threads)
+		print "DEBUG id(l_threads)= {}, l_threads= {}".format(id(l_threads),l_threads)
+
+		alive_number = 0
+		for thread_x in l_threads:
+			if thread_x.is_alive():
+				print("thread:{} is still alive".format(thread_x))
+				alive_number += 1
+		print("THere are still %d theads alive" % alive_number)
+		if not alive_number:
+			print("DEBUG no alive threads, return")
+			l_threads[:] = []
+			return
+
 		if l_threads:
 			for t in l_threads:
 				if t.is_alive():
@@ -1041,16 +1051,17 @@ class DirList(object):
 		sla.progress_q.queue.clear()
 		#list clear way:
 		l_threads[:] = []
+		print("clear l_theads, id(l_threads =",id(l_threads))
 		#s = "{0} files, search filters: {1}".format(self.searcher.total_work,self.search_filter)
 		#self.ptext.set(s)
 		s = "stopped"
 		self.ptext.set(s)
 		#self.doLS()
-		#if search_results have some results, printed out
+		#if partial search_results have some results, printed out
 		s_re = multi_operates.search_result
 		if len(s_re) > 0:
 			filtered_keyword_list = self.filter_keyword()
-			self.show_result(keyword_list, s_re, True)
+			self.show_result(PRE_KEYWORD_LIST, s_re, True)
 
 
 #################progress############################
@@ -1082,6 +1093,7 @@ def ask_quit(my_widget):
 		upload_ck_list()
 	#End: irone add
 	my_widget.top.quit()
+	print("'Bye'")
 
 
 def main():

@@ -12,7 +12,7 @@ import collections
 #analyse_file_type = ("rtrc","bssim","txt")
 
 search_result = {}
-progress_que = Queue.Queue()
+PROGRESS_QUE = Queue.Queue()
 
 
 def used_time():
@@ -53,7 +53,7 @@ def files_unpack(path_list):
 	error = None
 	for i in range(ln):
 		tip = "Unpacking[{0}/{1}]{2}".format(i+1,ln,path_list[i].encode('gb2312'))
-		progress_que.put(tip)
+		PROGRESS_QUE.put(tip)
 		errors = untar_function.untar_function(path_list[i])[0]
 		if errors:
 			print "DEBUG unpack error = ",errors
@@ -95,7 +95,7 @@ def files_decode(path_list):
 	for i in range(ln_files):
 		if r.search(file_list[i]):
 			tip = "Decoding[{0}/{1}]{2}".format(i+1,ln_files,file_list[i].encode('gb2312'))
-			progress_que.put(tip)
+			PROGRESS_QUE.put(tip)
 			single_file_decode(file_list[i])
 	#my_decoder.decode_log(file_list)
 ##############files_decode()############################
@@ -184,7 +184,7 @@ def files_search(path_list, keyword_list, start_stop = None):
 			if 'unicode' in str(type(s)):
 				s = s.encode('gb2312')
 			tip = "Searching[{0}/{1}]{2}".format(i+1,ln_files,s)
-			progress_que.put(tip)
+			PROGRESS_QUE.put(tip)
 			l_res = single_file_search(file_list[i],keyword_list)
 			for item in l_res:
 				search_result.setdefault(item,[]).append(file_list[i])
@@ -195,30 +195,30 @@ def files_search(path_list, keyword_list, start_stop = None):
 @sla.time_interval
 def do_operates(path_list, keyword_list):
 	global search_result
-	global progress_que
+	global PROGRESS_QUE
 
-	progress_que.queue.clear()
+	PROGRESS_QUE.queue.clear()
 
 	#1. unpack
-	progress_que.put("Unpack start")
+	PROGRESS_QUE.put("Unpack start")
 	new_path_list = files_unpack(path_list)
-	progress_que.put("Unpack finished, time used = %s"%(used_time()))
+	PROGRESS_QUE.put("Unpack finished, time used = %s"%(used_time()))
 
 	tmp = sla.interval
 	#2. decode
-	progress_que.put("Decode start")
+	PROGRESS_QUE.put("Decode start")
 	files_decode(new_path_list)
-	progress_que.put("Decode finished, time used = %s"%(used_time()))
+	PROGRESS_QUE.put("Decode finished, time used = %s"%(used_time()))
 
 	tmp = tmp + sla.interval
 	#3. search
-	progress_que.put("Search start")
+	PROGRESS_QUE.put("Search start")
 	search_result = files_search(new_path_list, keyword_list)
-	progress_que.put("Search finished, time used = %s"%(used_time()))
+	PROGRESS_QUE.put("Search finished, time used = %s"%(used_time()))
 
 	tmp = tmp + sla.interval
 	sla.interval = tmp
-	progress_que.put("All done, time used =%s"%(used_time()))
+	PROGRESS_QUE.put("All done, time used =%s"%(used_time()))
 
 ##############multi_operates############################
 

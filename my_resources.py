@@ -37,9 +37,8 @@ def read_keyword_file(keyword_file):
 
 	return l_key
 ###############read_keyword_file#####################
-keyword_list = read_keyword_file(PREDIFINED_KEYWORD)[1:]
-filtered_keyword_list = keyword_list[:]
 
+PRE_KEYWORD_LIST = read_keyword_file(PREDIFINED_KEYWORD)[1:]
 
 ####get desktop name#########
 import platform
