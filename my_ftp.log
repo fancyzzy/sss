@@ -1,0 +1,35 @@
+
+10/12/17 09:06:20
+ERROR occure, e= [Errno 2] No such file or directory: 'C:\\Users\\tarzonz\\Desktop\\sss\\my_ftp.pkl'
+Save data_bak: MY_FTP(host='135.242.80.16', port='8080', user='', pwd='', target_dir='/01_Training/02_PMU/02_Documents', mail_keyword='\\d-\\d{7}\\d*')
+
+10/12/17 09:06:42
+Retrive data_bak:MY_FTP(host='135.242.80.16', port='8080', user='', pwd='', target_dir='/01_Training/02_PMU/02_Documents', mail_keyword='\\d-\\d{7}\\d*')
+Retrive success!
+
+2017-10-12 10:27:07Ftp connecting start, host:135.242.80.37, port:21, acc:mxswing, pwd:mxswing
+2017-10-12 10:27:07*** Successfully connected to host "135.242.80.37"
+2017-10-12 10:27:07*** Successfully logged in as "mxswing"
+2017-10-12 10:27:07Ftp upload start, file_name:C:\Users\tarzonz\Desktop\sss\custom_keyword.txt, destination:/sharing_folder_37/SLA_History\tarzonz_custom_keyword.txt
+2017-10-12 10:27:07Upload file /sharing_folder_37/SLA_History\tarzonz_custom_keyword.txt successfully!
+2017-10-12 10:31:25Ftp connecting start, host:135.242.80.37, port:21, acc:mxswing, pwd:mxswing
+2017-10-12 10:31:25*** Successfully connected to host "135.242.80.37"
+2017-10-12 10:31:25*** Successfully logged in as "mxswing"
+2017-10-12 10:31:25Ftp upload start, file_name:C:\Users\tarzonz\Desktop\sss\custom_keyword.txt, destination:/sharing_folder_37/SLA_History\tarzonz_custom_keyword.txt
+2017-10-12 10:31:25Upload file /sharing_folder_37/SLA_History\tarzonz_custom_keyword.txt successfully!
+2017-10-12 10:33:49Ftp connecting start, host:135.242.80.37, port:21, acc:mxswing, pwd:mxswing
+2017-10-12 10:33:49*** Successfully connected to host "135.242.80.37"
+2017-10-12 10:33:49*** Successfully logged in as "mxswing"
+2017-10-12 10:33:49Ftp upload start, file_name:C:\Users\tarzonz\Desktop\sss\custom_keyword.txt, destination:\sharing_folder_37\SLA_History\tarzonz_custom_keyword.txt
+2017-10-12 10:33:49Upload file \sharing_folder_37\SLA_History\tarzonz_custom_keyword.txt successfully!
+2017-10-12 10:37:12this is my_ftp
+2017-10-12 10:37:12Ftp connecting start, host:135.242.80.37, port:21, acc:mxswing, pwd:mxswing
+2017-10-12 10:37:12*** Successfully connected to host "135.242.80.37"
+2017-10-12 10:37:12*** Successfully logged in as "mxswing"
+2017-10-12 10:37:12Ftp upload start, file_name:C:\Users\tarzonz\Desktop\sss\custom_keyword.txt, destination:\sharing_folder_37\SLA_History\tarzonz_custom_keyword.txt
+2017-10-12 10:37:13Upload file \sharing_folder_37\SLA_History\tarzonz_custom_keyword.txt successfully!
+2017-10-12 10:50:30
+10/12/17 10:50:30
+2017-10-12 10:50:30Retrive data_bak:MY_FTP(host='135.242.80.16', port='8080', user='', pwd='', target_dir='/01_Training/02_PMU/02_Documents', mail_keyword='\\d-\\d{7}\\d*')
+2017-10-12 10:50:30Retrive success!
+

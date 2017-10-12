@@ -16,7 +16,6 @@ l_threads = []
 PREDIFINED_KEYWORD = 'keywords.csv'
 resource = "resource"
 ico_file = "auto_searcher.ico"
-print "path = ",os.path.join(resource,ico_file)
 icon_path = os.path.join(os.getcwd(),os.path.join(resource,ico_file))
 
 def read_keyword_file(keyword_file):
@@ -42,12 +41,93 @@ keyword_list = read_keyword_file(PREDIFINED_KEYWORD)[1:]
 filtered_keyword_list = keyword_list[:]
 
 
+####get desktop name#########
+import platform
+import _winreg
+
+def get_desktop():
+	key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,\
+	r'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders',)
+	return _winreg.QueryValueEx(key, "Desktop")[0]
+
+WORKING_PATH = os.getcwd()
+DESKTOP_PATH = ""
+if platform.system().lower() == 'windows':
+	DESKTOP_PATH = get_desktop()
+
+USER_NAME = DESKTOP_PATH.encode('utf-8').split('\\')[-2]
+print("DEBUG USER_NAME=",USER_NAME)
+####get desktop name#########
+
+###########custom keyword file########
+CK_FILE = 'custom_keyword.txt'
+CK_FILE_PATH = os.path.join(WORKING_PATH, CK_FILE)
+REMOTE_CK_DIR_PATH = r'\sharing_folder_37\SLA_History'
+
+#Begin irone add for save customized keyword
+def save_custom_keyword(new_keyword_list, ck_file=CK_FILE_PATH):
+	if os.path.exists(ck_file):
+		file_mode = 'a'
+	else:
+		file_mode = 'w'
+
+	with open(ck_file, file_mode) as fobj:
+		for keyword in new_keyword_list:
+			fobj.write(keyword + '\r\n')
+#End: irone add for save customized keyword
+
+def get_custom_keyword(ck_file=CK_FILE_PATH):
+
+	if os.path.exists(ck_file):
+		l_ck = []
+		with open(ck_file, 'rb') as fobj:
+			while 1:
+				buff = fobj.readline()
+				if buff == '':
+					break
+				else:
+					l_ck.append(buff.strip().split(' ')[0])
+
+		return l_ck
+	else:
+		print('my_resources:debug, no custom keword file yet')
+###########custom keyword file########
+
+#############ftp_log##################
+import Queue
+import time
+
+LOG_FILE = os.path.join(os.getcwd(), 'my_ftp.log')
+FTP_TIP_QUE = Queue.Queue()
+
+#here to be updated to logger
+def printl(s):
+	global LOG_FILE
+	global FTP_TIP_QUE
+
+	if 'unicode' in str(type(s)):
+		s = s.encode('utf-8')
+
+	FTP_TIP_QUE.put(s)
+	print(s)
+
+	try:
+		with open(LOG_FILE, 'a') as fobj:
+			fobj.write(s + '\n')
+	except Exception as e:
+		print "DEBUG wirte failed, e:",e
+#########recode_log()#######################
+
+
+
+
+
 #This is for pyinstaller
+'''
 if hasattr(sys, "_MEIPASS"):
 	print "sys._MEIPASS = ",sys._MEIPASS
 else:
 	print "os.path.abspath = ",os.path.abspath(".")
-
 #需要pyinstaller -F xx.spec打包成一个.exe的时候用这个函数
 #否则，正常打包不要用这个函数定义资源文件的路径
 def resource_path(relative_path):
@@ -56,8 +136,7 @@ def resource_path(relative_path):
 	else:
 		base_path = os.path.abspath(".")
 	return os.path.join(base_path, relative_path)
-
-
+'''
 
 if __name__ == '__main__':
 	

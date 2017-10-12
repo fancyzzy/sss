@@ -3,13 +3,12 @@
 
 from ctypes import *
 import sla_multi_threads as sla
+import my_resources
 import os
 
-print "DEBUG my_decoder"
-print sla.working_path
 my_decode_dll = os.path.join('DLLs','decode_64.dll')
 
-mylib = cdll.LoadLibrary(os.path.join(sla.working_path,my_decode_dll))
+mylib = cdll.LoadLibrary(os.path.join(my_resources.WORKING_PATH,my_decode_dll))
 
 @sla.time_interval
 def decode_log(log_list):
@@ -37,6 +36,7 @@ def decode_one_file(file_name):
 
 
 if __name__ == '__main__':
+	print "DEBUG my_decoder"
 	'''
 	log_list = [r"C:\Users\tarzonz\Desktop\decode_64\bin\Debug\20160219_045800_20160219_050316_1.3.6_DTC_[209]_209.rtrc_backup"]
 	decode_log(log_list)

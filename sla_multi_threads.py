@@ -16,27 +16,12 @@ import threading
 import Queue
 import platform
 import copy
-import _winreg
-
-def get_desktop():
-	key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,\
-	r'Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders',)
-	return _winreg.QueryValueEx(key, "Desktop")[0]
-
-working_path = os.getcwd()
-
 
 # 配置log
 logger = logging.getLogger('feli')
 interval = 0
 opr = platform.system()
 
-desktop_path = ""
-if opr.lower() == 'windows':
-	print "DEBUG yes opr = windows"
-	desktop_path = get_desktop()
-print "DEBUG desktop_path = ",desktop_path
-#print opr
 ########################globals##################
 def time_interval(func):
 	def _deco(*args, **kwargs):

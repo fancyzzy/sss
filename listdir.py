@@ -23,6 +23,8 @@ import untar_function
 import re
 import repeat_log
 import multi_operates
+import time
+import my_ftp
 #print sys.getdefaultencoding()
 
 
@@ -102,19 +104,30 @@ class DirList(object):
 
 		#search keyword entry -> combobox
 		#self.search_entry = Entry(self.search_fm, width=30,textvariable=self.keyword)
-		self.search_entry = ttk.Combobox(self.search_fm, width=30,textvariable=self.keyword)
+		self.combo_search = ttk.Combobox(self.search_fm, width=30,textvariable=self.keyword)
 		#This is for keywords.csv data
 		self.keyword.set(PREDIFINED_KEYWORD)
-		self.search_entry.bind('<Return>', self.get_default_keywords)
-		self.search_b = Button(self.search_fm, text="Auto analyse", command=self.start_thread_analyse, activeforeground\
-			='white', activebackground='orange',bg = 'white', relief='raised')
-		self.search_entry.focus_set()
+		#self.combo_search.bind('<Return>', self.get_default_keywords)
+		self.combo_search.bind('<KeyPress-Escape>', self.get_default_keywords)
 
+		#read the history cusome keywords
+		self.ck_file = os.path.join(WORKING_PATH, 'custom_keyword.txt')
+		self.ck_list = []
+		self.ck_list = get_custom_keyword()
+		value = self.ck_list[-10:]
+		value.reverse()
+		self.combo_search['values'] = value
+		self.ck_list = []
+
+		self.combo_search.focus_set()
 		self.search_label.pack(side=LEFT)
-		self.search_entry.pack(side=LEFT)
-		#terminate
+		self.combo_search.pack(side=LEFT)
+		#terminate button
 		self.stop_b = Button(self.search_fm, text="Stop", command=self.terminate_threads)
 		self.stop_b.pack(side=RIGHT)
+		#search start button
+		self.search_b = Button(self.search_fm, text="Auto analyse", command=self.start_thread_analyse, activeforeground\
+			='white', activebackground='orange',bg = 'white', relief='raised', width=10)
 		self.search_b.pack(side=RIGHT)
 		self.search_fm.pack()
 
@@ -203,7 +216,7 @@ class DirList(object):
 			#self.cwd.set(os.getcwd())
 			#desktop is default path
 			#print "DEBUG sla.desktop_path=",sla.desktop_path
-			self.cwd.set(sla.desktop_path)
+			self.cwd.set(DESKTOP_PATH)
 			self.menu_selectall()
 			self.doLS()
 
@@ -211,9 +224,10 @@ class DirList(object):
 
 
 	############# menu function ###############
+
 	def menu_keywords(self):
 
-		kdir = os.path.join(sla.working_path,PREDIFINED_KEYWORD)
+		kdir = os.path.join(WORKING_PATH,PREDIFINED_KEYWORD)
 		cmd = [kdir]
 		try:
 			call_proc(cmd)
@@ -281,6 +295,7 @@ class DirList(object):
 			#issue category
 			#here is better to use namedtuple
 			filtered_keyword_list[0][5] = "customized keyword"
+
 
 			return filtered_keyword_list[:1]
 
@@ -721,7 +736,7 @@ class DirList(object):
 		'''
 		one key automated analysing the directory
 		'''
-		self.search_b.config(text="Please wait",bg='orange',relief='sunken',state='disabled')
+		self.search_b.config(text="Please wait...",bg='orange',relief='sunken',state='disabled', width=10)
 		self.popup_menu.entryconfig("Search", state="disable")
 
 		########multi_operates 1.unpack, 2.decode, 3.search###############
@@ -871,6 +886,8 @@ class DirList(object):
 		#clean the threads list:
 		l_threads = []
 		#print 'DEBUG search finished length d_result = ',len(d_result)
+	##################thread_search()#########################
+
 
 	def show_result(self, key_words, d_result, is_incompleted = False):
 	 	#写入dirs
@@ -933,6 +950,16 @@ class DirList(object):
 			else:
 				s = u"没有发现含有任何关键字, No findings"
 			self.dirs.insert(END,s)
+
+
+		if self.keyword.get() != PREDIFINED_KEYWORD:
+			self.ck_list.append(self.keyword.get())
+			print "DEBUG ck_list=",self.ck_list
+			value = list(self.combo_search['values'])
+			value.insert(0, self.keyword.get())
+			print "DEBUG value=",value
+			self.combo_search['values'] = value
+
 
 		#clear the search result which can not be used by terminate thread function
 		d_result.clear()
@@ -1028,15 +1055,44 @@ class DirList(object):
 
 #################progress############################
 
-def ask_quit(top):
-	if askyesno("Tip","Exit?"):
-		top.quit()
+
+def upload_ck_list():
+	print("upload_ck_list, start")
+	host = '135.242.80.37'
+	port = '21'
+	acc = 'mxswing'
+	pwd = 'mxswing'
+	#file_path = r'C:\Users\tarzonz\Desktop\my_ftp.log'
+	file_path = CK_FILE_PATH
+	file_name = os.path.basename(file_path)
+	remote_path = os.path.join(REMOTE_CK_DIR_PATH, (USER_NAME + '_' + file_name))
+
+	res =  my_ftp.my_upload(host, port, acc, pwd, file_path, remote_path)
+	return res
+##########upload_ck_list()################
+
+
+def ask_quit(my_widget):
+	#if askyesno("Tip","Exit?"):
+	#	top.quit()
+
+	#Begin: irone add for save customized keyword
+	if my_widget.ck_list:
+		save_custom_keyword(my_widget.ck_list)
+		upload_ck_list()
+	#End: irone add
+	my_widget.top.quit()
+
 
 def main():
 	
+	cstart = time.clock()
 	d = DirList(os.getcwd())
 	#ask to quit
-	#d.top.protocol("WM_DELETE_WINDOW",lambda :ask_quit(d.top))
+	d.top.protocol("WM_DELETE_WINDOW",lambda :ask_quit(d))
+
+	cend = time.clock()
+	print("ctime used for startup:",cend-cstart)
 	d.top.mainloop()
 
 

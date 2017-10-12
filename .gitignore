@@ -8,3 +8,5 @@
 resource/auto_searcher - Copy (2).ico
 resource/auto_searcher - Copy.ico
 resource/new_auto_searcher.ico
+*.pkl
+custom_keyword.txt
