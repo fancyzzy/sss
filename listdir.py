@@ -248,6 +248,8 @@ class DirList(object):
 
 	def menu_ftp_download_log(self):
 		print "hello"
+		
+		ftp_top = my_ftp.My_Ftp(self.top)
 		pass
 
 	def log_translate(self):
@@ -731,6 +733,7 @@ class DirList(object):
 		'''
 		one key automated analysing the directory
 		'''
+		print "auto_analyse start:"
 		self.search_b.config(text="Please wait...",bg='orange',relief='sunken',state='disabled', width=10)
 		self.popup_menu.entryconfig("Search", state="disable")
 
@@ -740,6 +743,7 @@ class DirList(object):
 		
 		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
+		print "auto_analyse finished"
 
 ################auto_ananlyse()#########################
 
@@ -755,6 +759,7 @@ class DirList(object):
 	def progressbar(self):
 		global l_threads
 
+		print "progressbar start"
 		n = 0
 		s = "Analsis begins"
 		self.ptext.set(s)
@@ -782,6 +787,7 @@ class DirList(object):
 				#bug 11
 				if "All done" in s:
 					break
+		print "progressbar end"
 		return
 ##################progressbar()################################
 
@@ -890,7 +896,7 @@ class DirList(object):
 
 	def show_result(self, key_words, d_result, is_incompleted = False):
 	 	#写入dirs
-	 	print('show result start')
+	 	print('  show_result start')
 		self.dirs.delete(0, END)
 		current_dir = os.curdir.encode('gb2312').decode('utf-8')
 		#self.dirs.insert(END, os.curdir)

@@ -48,7 +48,7 @@ def files_unpack(path_list):
 	ln = len(path_list)
 	new_path_list = copy.deepcopy(path_list)
 
-	print('files unpack start')
+	print('  unpack start')
 
 	error = None
 	for i in range(ln):
@@ -78,7 +78,7 @@ def files_decode(path_list):
 	for path in path_list:
 		file_list.extend(sla.get_file_list(path,[]))
 
-	print('files decode start')
+	print('  decode start')
 
 	#filter out those not necessary searched files
 	sufx_list = [r".rtrc", r".rtrc_backup"]
@@ -163,7 +163,7 @@ def files_search(path_list, keyword_list, start_stop = None):
 	#start_stop = '20171009_222222_20171009_333333'
 	#file_list = filter_start_stop(file_list, filter_word)
 
-	print('files search start')
+	print('  search start')
 
 	#filter out those not necessary searched files
 	not_search_sufx_list = [r".rtrc", r".rtrc_backup"]

@@ -529,7 +529,7 @@ class My_Ftp(object):
 	########Periodical_check()#####################
 
 
-	def ask_quit(self, top):
+	def ask_quit(self, ftp_top):
 		global HOST
 		global PORT
 		global ACC
@@ -553,7 +553,12 @@ class My_Ftp(object):
 			pass
 
 		ASK_QUIT = True
-		top.quit()
+		if __name__ == '__main__':
+			#quit() all windows and parent window to be closed
+			ftp_top.quit()
+		else:
+			#derstroy only this window
+			ftp_top.destroy()
 
 	###########init()##############		
 
