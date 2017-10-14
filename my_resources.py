@@ -100,7 +100,7 @@ LOG_FILE = os.path.join(os.getcwd(), 'my_ftp.log')
 FTP_TIP_QUE = Queue.Queue()
 
 #here to be updated to logger
-def printl(s):
+def printl(s, saved = True):
 	global LOG_FILE
 	global FTP_TIP_QUE
 
@@ -110,13 +110,42 @@ def printl(s):
 	FTP_TIP_QUE.put(s)
 	print(s)
 
-	try:
-		with open(LOG_FILE, 'a') as fobj:
-			fobj.write(s + '\n')
-	except Exception as e:
-		print "DEBUG wirte failed, e:",e
+	if saved:
+		try:
+			with open(LOG_FILE, 'a') as fobj:
+				fobj.write(s + '\n')
+		except Exception as e:
+			print "DEBUG wirte failed, e:",e
+	return
 #########recode_log()#######################
 
+
+def get_file_list_size(file_list):
+	size_total = 0
+	for file in file_list:
+		size_total = size_total + os.path.getsize(file)
+	s = ''
+	if size_total > 1024000000:
+		s = "%.2f Gb"%(size_total/((1024*1024*1024)*1.0))
+	elif size_total > 10240000:
+		s = "%.1f Mb"%(size_total/(1024.0*1024))
+	elif size_total > 10240:
+		s = "%d Kb"%(size_total/1024.0)
+	else:
+		s = "%d bytes"%(size_total)
+
+	return s
+############get_file_list_size()############
+
+def record_result(str_list, result_file = 'result.txt'):
+
+	with open(result_file, 'w') as fobj:
+		s = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))	
+		fobj.write("result of"+" " + s + '\r\n')
+		for str_line in str_list:
+			fobj.write(str_line)
+	return
+#########record_result()####################
 
 
 

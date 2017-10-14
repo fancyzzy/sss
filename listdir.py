@@ -25,8 +25,13 @@ import repeat_log
 import multi_operates
 import time
 import my_ftp
+import tooltip
 #print sys.getdefaultencoding()
 
+FTP_TOP = None
+
+FILE_LIST = []
+SEARCH_RESULT_LIST = []
 
 def call_proc(cmd):
 	'''
@@ -48,7 +53,7 @@ class DirList(object):
 		self.top.wm_title("SLA")
 		self.blank_label0 = Label(self.top, text='')
 		self.blank_label0.pack()
-		self.label = Label(self.top, text='Site Log Analyser v2.3',\
+		self.label = Label(self.top, text='Site Log Analyser v2.4',\
 			font = ('Helvetica', 12, 'bold'), fg= my_color_blue_office)
 		self.label.pack()
 		#self.blank_label1 = Label(self.top, text='')
@@ -110,6 +115,9 @@ class DirList(object):
 		#self.combo_search.bind('<Return>', self.get_default_keywords)
 		self.combo_search.bind('<KeyPress-Escape>', self.get_default_keywords)
 
+		s = "keywords.csv is the predefined keywords data\nyou can input a specific keyword\nclick 'esc' for default"
+		tooltip.ToolTip(self.combo_search, msg=None, msgFunc=lambda : s, follow=True, delay=0.2)
+
 		#read the history cusome keywords
 		self.ck_file = os.path.join(WORKING_PATH, 'custom_keyword.txt')
 		self.ck_list = []
@@ -131,6 +139,9 @@ class DirList(object):
 			='white', activebackground='orange',bg = 'white', relief='raised', width=10)
 		self.search_b.pack(side=RIGHT)
 		self.search_fm.pack()
+
+		tooltip.ToolTip( self.search_b, msg=None, msgFunc=\
+			lambda : 'To unpack, decode and search the selected files or directories', follow=True, delay=0.2)
 
 
 		#self.blank_label = Label(self.top, text='')
@@ -246,17 +257,73 @@ class DirList(object):
 		#decode_window.decode_top.destroy()
 		#decode_window.decode_top.bell()
 
+
+	def monitor_ftp_download(self, ftp_top):
+		global SEARCH_RESULT_LIST
+
+		while 1:
+			if not ftp_top:
+				break
+			else:
+				if my_ftp.AUTOANA_ENABLE:
+					#here should add mutext to dirlist or ptext or something 
+					#which maybe used by auto_analyse
+					s = "Now detecting ftp downloaded files..."
+					self.ptext.set(s)
+					file_path = my_ftp.FTP_FILE_QUE.get()
+					s = "Ftp downloaded file detected"
+					self.ptext.set(s)
+
+					#counting the total size of file_list:
+					file_list = sla.get_file_list(file_path,[])
+					s_total = get_file_list_size(file_list)
+					s = "ftp downloaded {0} files {1} detected".format(ln,s_total)
+					self.ptext.set(s)
+
+					#display on the dirlist
+					self.dirs.delete(0, END)
+					current_dir = os.curdir.encode('gb2312').decode('utf-8')
+					self.dirs.insert(END, current_dir)
+					s = file_path.encode('gb2312').decode('utf-8')
+					self.dirs.insert(END,s)
+
+
+					#start search
+					self.auto_analyse(file_list, PRE_KEYWORD_LIST)
+
+					#record result in the file_path as a format of xx.res
+					result_file = os.path.join(file_path, 'search_result.txt')
+					record_result(SEARCH_RESULT_LIST, result_file)
+
+					#send email
+				else:
+					pass
+
+		print("DEBUG monitor_Ftp_download quit")
+		return
+	####################monitor_ftp_download()#######################
+
+
 	def menu_ftp_download_log(self):
+		global FTP_TOP
 		print "hello"
 		
 		ftp_top = my_ftp.My_Ftp(self.top)
+		FTP_TOP = ftp_top
+		print("\nDEBUG here to create a thread doing the analysing after ftp dowload")
+		print("ftp_top =", ftp_top)
+		t = threading.Thread(target=self.monitor_ftp_download, args=(ftp_top,))
+		l_threads.append(t)
+		print("DEBUG monitor_ftp_download thread=",t)
+		t.start()	
+
 		pass
 
 	def log_translate(self):
 		showinfo(title='Log Translate',message="To be done...")
 
 	def menu_about(self):
-		s = askyesnocancel(title='about', message = "SLA - Site Log Analyser v2.3, any idea, just feedback to us:",\
+		s = askyesnocancel(title='about', message = "SLA - Site Log Analyser v2.4, any idea, just feedback to us:",\
 			detail="felix.zhang@nokia-sbell.com\nirone.li@nokia-sbell.com\neric.a.zhu@nokia-sbell.com\nbella.sun@nokia-sbell.comn\n\
 			QD GSM-A All Rights Reserved",icon=INFO)
 		'''
@@ -618,6 +685,8 @@ class DirList(object):
 		self.doLS()
 
 	def doLS(self, ev=None):
+		global FTP_TOP
+		print("DEBUG FTP_TOP=",FTP_TOP)
 		#print "DEBUG print list_var=",self.list_v.get()
 		print "doLS called"
 		error = ''
@@ -690,7 +759,14 @@ class DirList(object):
 		v_cwd = os.getcwd().decode('gb2312').encode('utf-8')
 		for eachFile in dirlist:
 			#s = os.path.join(os.getcwd(),eachFile)
-			s = os.path.join(v_cwd,eachFile.encode('utf-8'))
+			if 'unicode' in str(type(eachFile)):
+				eachFile = eachFile.encode('utf-8')
+			elif 'str' in str(type(eachFile)):
+				#eachFIle = eachFile.decode('gb2312').encode('utf-8')
+				#print("DEBUG after, type=",type(eachFile))
+				pass
+			s = os.path.join(v_cwd,eachFile)
+			#s = os.path.join(v_cwd,eachFile.encode('utf-8'))
 			#在listbox中显示中文, windows support gbk or gb2123 coding
 			#bug5
 			self.dirs.insert(END, s)
@@ -895,17 +971,22 @@ class DirList(object):
 
 
 	def show_result(self, key_words, d_result, is_incompleted = False):
+		global SEARCH_RESULT_LIST
+		srl = SEARCH_RESULT_LIST
+		srl[:] = []
 	 	#写入dirs
 	 	print('  show_result start')
 		self.dirs.delete(0, END)
 		current_dir = os.curdir.encode('gb2312').decode('utf-8')
 		#self.dirs.insert(END, os.curdir)
 		self.dirs.insert(END, current_dir)
+		srl.append(current_dir)
 		no_find = True
 		s = "-"*20 + u"Searching Result" + "-"*20
 		if is_incompleted:
 			s = "-"*20 + u"Searching Result(incompleted)" + "-"*20
 		self.dirs.insert(END,s)
+		srl.append(s)
 		
 
 		j = 0
@@ -922,13 +1003,16 @@ class DirList(object):
 				#self.dirs.insert(END,s)
 				s =u"[{0}.keyword]:{1}".format(i,lk[0])
 				self.dirs.insert(END,s)
+				srl.append(s)
 				self.dirs.itemconfig(END,fg=my_color_blue)
 				issue_category = lk[5].decode("gb2312")#.encode("utf-8")
 				#s =u"issue category:---{0}---".format(lk[4])
 				s =u"[Issue Category]:{0}".format(issue_category)
 				self.dirs.insert(END,s)
+				srl.append(s)
 				s =u"[File Occurence]:{0}".format(nn)
 				self.dirs.insert(END,s)
+				srl.append(s)
 				#self.dirs.itemconfig(END,fg=my_color_blue)
 				#if lk[3].strip() != '':
 				#	lk[3]=lk[3].encode('utf-8')
@@ -941,20 +1025,24 @@ class DirList(object):
 					try:
 						sleep(0.01)
 						self.dirs.insert(END,s)
+						srl.append(s)
 					except Exception as e:
 						print 'error here e=',e
 						print "insert(END,s) where s=",s
 				#s = "-"*20
 				s = ' '
 				self.dirs.insert(END,s)
+				srl.append(s)
 		s = "-"*20 + u"totally {0} keywords occured!".format(j) + "-"*20
 		self.dirs.insert(END,s)
+		srl.append(s)
 		if no_find:
 			if self.keyword.get() != PREDIFINED_KEYWORD:
 				s = u"没有发现含有关键字'{0}'的文件, No findings".format(self.keyword.get())
 			else:
 				s = u"没有发现含有任何关键字, No findings"
 			self.dirs.insert(END,s)
+			srl.append(s)
 
 
 		if self.keyword.get() != PREDIFINED_KEYWORD:
@@ -1033,6 +1121,7 @@ class DirList(object):
 		'''
 		global l_threads
 		global PRE_KEYWORD_LIST
+		print "DEBUG terminate threads start"
 		print "DEBUG l_threads=",id(l_threads)
 		print "DEBUG id(l_threads)= {}, l_threads= {}".format(id(l_threads),l_threads)
 
@@ -1054,6 +1143,18 @@ class DirList(object):
 
 		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
+
+
+
+		print("DEBUG after termination:")
+		print "DEBUG id(l_threads)= {}, l_threads= {}".format(id(l_threads),l_threads)
+		alive_number = 0
+		for thread_x in l_threads:
+			if thread_x.is_alive():
+				print("thread:{} is still alive".format(thread_x))
+				alive_number += 1
+
+
 		sla.progress_q.queue.clear()
 		#list clear way:
 		l_threads[:] = []
@@ -1090,6 +1191,7 @@ def upload_ck_list():
 
 
 def ask_quit(my_widget):
+	global FTP_TOP
 	#if askyesno("Tip","Exit?"):
 	#	top.quit()
 
@@ -1098,7 +1200,12 @@ def ask_quit(my_widget):
 		save_custom_keyword(my_widget.ck_list)
 		upload_ck_list()
 	#End: irone add
-	my_widget.top.quit()
+	my_widget.terminate_threads()
+	if FTP_TOP:
+		FTP_TOP.ftp_top.destroy()
+		my_widget.top.destroy()
+	else:
+		my_widget.top.quit()
 	print("'Bye'")
 
 
