@@ -22,7 +22,7 @@ def repeat_log_rank(path_list, top_rank = 5):
 					file_line_nbr += 1
 					#if buff == "" or buff == '\r\n':
 					if buff == "":
-						print "broke!"
+						#print "broke!"
 						break
 					else:
 						# Remove the part before the file name (first word)

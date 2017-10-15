@@ -32,6 +32,7 @@ FTP_TOP = None
 
 FILE_LIST = []
 SEARCH_RESULT_LIST = []
+NO_KEYWORD_FIND = True
 
 def call_proc(cmd):
 	'''
@@ -261,9 +262,11 @@ class DirList(object):
 
 	def monitor_ftp_download(self, ftp_top):
 		global SEARCH_RESULT_LIST
+		global NO_KEYWORD_FIND
 
+		print("DEBUG monitor_ftp_download start")
 		while 1:
-			if not ftp_top:
+			if not ftp_top.running:
 				break
 			else:
 				if my_ftp.AUTOANA_ENABLE:
@@ -272,14 +275,12 @@ class DirList(object):
 					s = "Now detecting ftp downloaded files..."
 					self.ptext.set(s)
 					file_path = my_ftp.FTP_FILE_QUE.get()
-					s = "Ftp downloaded file detected"
-					self.ptext.set(s)
-
 					#counting the total size of file_list:
 					file_list = sla.get_file_list(file_path,[])
 					s_total = get_file_list_size(file_list)
-					s = "ftp downloaded {0} files {1} detected".format(ln,s_total)
+					s = "ftp downloaded {0} files {1} detected".format(len(file_list),s_total)
 					self.ptext.set(s)
+					sleep(1.5)
 
 					#display on the dirlist
 					self.dirs.delete(0, END)
@@ -288,15 +289,21 @@ class DirList(object):
 					s = file_path.encode('gb2312').decode('utf-8')
 					self.dirs.insert(END,s)
 
-
 					#start search
 					self.auto_analyse(file_list, PRE_KEYWORD_LIST)
+					self.start_thread_progressbar()
 
 					#record result in the file_path as a format of xx.res
 					result_file = os.path.join(file_path, 'search_result.txt')
 					record_result(SEARCH_RESULT_LIST, result_file)
 
 					#send email
+					if not NO_KEYWORD_FIND:
+						print("DEBUG keyword find result=", multi_operates.search_result)
+						print("Result has been saved in %s" % result_file)
+						NO_KEYWORD_FIND = True
+					else:
+						print("DEBUG no keyword found")
 				else:
 					pass
 
@@ -312,7 +319,7 @@ class DirList(object):
 		ftp_top = my_ftp.My_Ftp(self.top)
 		FTP_TOP = ftp_top
 		print("\nDEBUG here to create a thread doing the analysing after ftp dowload")
-		print("ftp_top =", ftp_top)
+		print("ididididid ftp_top =", id(ftp_top))
 		t = threading.Thread(target=self.monitor_ftp_download, args=(ftp_top,))
 		l_threads.append(t)
 		print("DEBUG monitor_ftp_download thread=",t)
@@ -1003,9 +1010,11 @@ class DirList(object):
 
 	def show_result(self, key_words, d_result, is_incompleted = False):
 		global SEARCH_RESULT_LIST
+		global NO_KEYWORD_FIND
 		srl = SEARCH_RESULT_LIST
 		srl[:] = []
 	 	#写入dirs
+		ln = len(key_words)
 	 	print('  show_result start')
 		self.dirs.delete(0, END)
 		current_dir = os.curdir.encode('gb2312').decode('utf-8')
@@ -1013,7 +1022,10 @@ class DirList(object):
 		self.dirs.insert(END, current_dir)
 		srl.append(current_dir)
 		no_find = True
-		s = "-"*20 + u"Searching Result" + "-"*20
+		if ln > 1:
+			s = "-"*20 + u"Predefined Keywords Searching Result" + "-"*20
+		else:
+			s = "-"*20 + u"Custom Keyword Searching Result" + "-"*20
 		if is_incompleted:
 			s = "-"*20 + u"Searching Result(incompleted)" + "-"*20
 		self.dirs.insert(END,s)
@@ -1021,7 +1033,6 @@ class DirList(object):
 		
 
 		j = 0
-		ln = len(key_words)
 		for i in range(ln):
 			nn = 0
 			lk = key_words[i]
@@ -1085,6 +1096,7 @@ class DirList(object):
 
 		#clear the search result which can not be used by terminate thread function
 		d_result.clear()
+		NO_KEYWORD_FIND = no_find
 
 ###############show_result#######################
 
