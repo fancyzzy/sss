@@ -97,6 +97,7 @@ class DirList(object):
 		#self.dirs['xscrollcommand'] = self.dirsbx.set
 		self.dirs.bind('<Double-1>', self.setDirAndGo)
 		self.dirs.bind('<1>', lambda event:self.listbox_click(event))
+		self.dirs.bind('<ButtonRelease-1>', lambda event:self.listbox_click_release(event))
 		#self.dirs.bind('<3>', self.listbox_Rclick)
 		#self.dirsby.config(command=self.dirs.yview)
 		#self.dirsbx.config(command=self.dirs.xview)
@@ -623,7 +624,37 @@ class DirList(object):
 	def listbox_click(self,event):
 		print "listbox click"
 		self.dirs.config(selectbackground=my_color_blue)
+		#this function is ahead of dirlist selection
+		#sel = self.dirs.curselection()
+		#print("DEBUG sel=",sel)
 		#here can be choose only to search some specific files
+
+
+	def listbox_click_release(self, event):
+		print("click release")
+		#this function triggered is behind of dirlist selection
+		#Thus, we can get the selections
+		sel = self.dirs.curselection()
+		select_path_list = []
+		index_list = self.dirs.curselection()
+		for idx in index_list:
+			select_path_list.append(self.dirs.get(idx))
+
+		ln = len(select_path_list)
+		s = "{0} in {1} items selected. Filters: {2}".\
+		format(ln, self.searcher.total_work,self.search_filter)
+		self.ptext.set(s)
+
+		'''
+		file_list = []
+		for file_path in select_path_list:
+			file_list.extend(sla.get_file_list(file_path,[]))
+		print("DEBUG file_list=",file_list)
+		s_total = get_file_list_size(file_list)
+		print("DEBUG size total=",s_total)
+		'''
+	###########listbox_click_release()###########
+
 
 	def listbox_Rclick(self,event,m):
 		#实现右击弹出菜单，在选择的line上
@@ -735,7 +766,7 @@ class DirList(object):
 		self.cwd.set(os.getcwd())
 		self.syn_dir(os.getcwd())
 
-		s = "{0} files. Filters: {1}".format(self.searcher.total_work,self.search_filter)
+		s = "{0} items. Filters: {1}".format(self.searcher.total_work,self.search_filter)
 		self.ptext.set(s)
 ###############doLS()##########################################
 
