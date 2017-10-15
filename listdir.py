@@ -1122,7 +1122,6 @@ class DirList(object):
 		global l_threads
 		global PRE_KEYWORD_LIST
 		print "DEBUG terminate threads start"
-		print "DEBUG l_threads=",id(l_threads)
 		print "DEBUG id(l_threads)= {}, l_threads= {}".format(id(l_threads),l_threads)
 
 		alive_number = 0
@@ -1144,10 +1143,6 @@ class DirList(object):
 		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
 
-
-
-		print("DEBUG after termination:")
-		print "DEBUG id(l_threads)= {}, l_threads= {}".format(id(l_threads),l_threads)
 		alive_number = 0
 		for thread_x in l_threads:
 			if thread_x.is_alive():

@@ -6,7 +6,12 @@ import os
 import time
 from datetime import datetime
 
-LOG_FILE = os.path.join(os.getcwd(), 'my_ftp.log')
+
+FTP_DIR = os.path.join(os.getcwd(),'ftp_download')
+if not os.path.exists(FTP_DIR):
+	os.mkdir(FTP_DIR)
+
+LOG_FILE = os.path.join(FTP_DIR, 'my_ftp.log')
 FTP_TIP_QUE = Queue.Queue()
 
 def printl(s):
