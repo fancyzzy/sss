@@ -19,7 +19,6 @@ import inspect
 import RTTP_decoder
 from  my_resources import *
 import my_decoder
-import untar_function
 import re
 import repeat_log
 import multi_operates
@@ -149,10 +148,13 @@ class DirList(object):
 		#self.blank_label = Label(self.top, text='')
 		#self.blank_label.pack()
 
-		self.ptext = StringVar(self.top)
+		self.pro_fm = Frame(self.top)
+		self.ptext = StringVar()
 		self.ptext.set("")
-		self.pro_label = Label(self.top, textvariable=self.ptext,justify='left')
-		self.pro_label.pack(side=LEFT)
+		self.pro_label = Label(self.pro_fm, textvariable=self.ptext,justify='left')
+		self.pro_label.grid(row=0,column=0)#.pack(side=LEFT)
+
+		self.pro_fm.pack(side=LEFT)
 
 
 		#####sla core algorithm instant init##########
@@ -564,7 +566,9 @@ class DirList(object):
 			self.dirs.delete(1, END)
 			self.searcher.file_list = []
 			os_sep = os.path.sep
-			for f in self.refine_data(data):
+			refined_data = self.refine_data(data)
+			#for f in refine_data(data):
+			for f in refined_data:
 				if f.startswith('{'):
 					#只去掉开头和结尾的{}，其他的{}不动
 					#f = f.strip('{}')
@@ -579,7 +583,8 @@ class DirList(object):
 				else:
 					pass
 
-			self.searcher.total_work = len(self.searcher.file_list)
+			#self.searcher.total_work = len(self.searcher.file_list)
+			self.searcher.total_work = len(refined_data)
 
 			#counting the total size of file_list:
 			size_total = 0
@@ -855,8 +860,10 @@ class DirList(object):
 		multi_operates.do_operates(path_list, keyword_list)
 		self.show_result(keyword_list, multi_operates.search_result)
 		
+		print("DEBUG button starts to recover")
 		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
+		print("DEBUG button recovered")
 		print "auto_analyse finished"
 
 ################auto_ananlyse()#########################

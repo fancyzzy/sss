@@ -40,9 +40,39 @@ def single_file_unpack(file_name, f_delete = False):
 	return res
 ########single_file_unpack()#####################
 
+
+#display porgress tip for each unpacked file
+@sla.time_interval
+def unpack_item(itemname, delet_fi=False):
+	global PROGRESS_QUE	
+
+	s = (None, "")
+	pack_name = ('','')
+	if os.path.isfile(itemname):
+		pack_name = untar_function.detect_pack(itemname)
+		if pack_name[0]:
+			#progress tip put(pack_name[1])
+			tip = "Unpacking: {0}".format(itemname)
+			PROGRESS_QUE.put(tip)
+			s = untar_function.untar_file(pack_name[0],itemname, delet_fi)
+			if s[0]:
+				return s
+			new_file = s[1]
+			if os.path.exists(new_file):
+				s = unpack_item(new_file, delet_fi)
+				if s[0]:
+					return s
+	else:
+		files = os.listdir(itemname)
+		for fi in files:
+			fi_d = os.path.join(itemname, fi)
+			s =unpack_item(fi_d, delet_fi)
+	return s
+
+
 @sla.time_interval
 def files_unpack(path_list):
-	global progrss_que
+	global PROGRESS_QUE
 
 	unpack_list = [""]
 	ln = len(path_list)
@@ -50,11 +80,15 @@ def files_unpack(path_list):
 
 	print('  unpack start')
 
+
 	error = None
 	for i in range(ln):
 		tip = "Unpacking[{0}/{1}]{2}".format(i+1,ln,path_list[i].encode('gb2312'))
 		PROGRESS_QUE.put(tip)
-		errors = untar_function.untar_function(path_list[i])[0]
+
+		#display porgress tip for each unpacked file
+		#errors = untar_function.untar_function(path_list[i])[0]
+		errors = unpack_item(path_list[i])[0]
 		if errors:
 			print "DEBUG unpack error = ",errors
 			break

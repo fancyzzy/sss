@@ -32,7 +32,8 @@ def read_keyword_file(keyword_file):
 				#is it possible to use namedtuple here?
 				l_key.append(item)
 	except Exception as e:
-		logger.error(e)
+		#logger.error(e)
+		print("error e=",e)
 		exit("keywords.csv not accessed!")
 
 	return l_key
