@@ -74,7 +74,7 @@ class DirList(object):
 		self.dirn.bind('<Return>', self.doLS)
 		#self.dirn.focus_set()
 		#self.ls = Button(self.dir_fm, text='List directory', command=self.doLS, activeforeground\
-		self.ls = Button(self.dir_fm, text='Open directory', command=self.open_dir, activeforeground\
+		self.ls = Button(self.dir_fm, text='List directory', command=self.open_dir, activeforeground\
 			='white', activebackground='orange')
 		self.ls.pack(side=RIGHT)
 		self.entry_label.pack(side=LEFT)
@@ -388,7 +388,7 @@ class DirList(object):
 		for fi,va in self.d_filter.items():
 			if va.get() == '1':
 				self.search_filter.append(fi)
-		s = "{0} files, search filters: {1}".format(self.searcher.total_work,self.search_filter)
+		s = "{0} items. keyword filters: {1}".format(self.searcher.total_work,self.search_filter)
 		self.ptext.set(s)
 
 		self.keyword.set(PREDIFINED_KEYWORD)
@@ -411,7 +411,7 @@ class DirList(object):
 				self.d_filter[self.lf[i]].set(True)
 				self.search_filter.append(self.lf[i])
 
-		s = "{0} files, search filters: {1}".format(self.searcher.total_work,self.search_filter)
+		s = "{0} items. Keyword filters: {1}".format(self.searcher.total_work,self.search_filter)
 		self.ptext.set(s)
 		self.keyword.set(PREDIFINED_KEYWORD)
 		#print "filter:{0},value:{1}".format(self.lf[i],self.d_filter[self.lf[i]].get())
@@ -665,7 +665,7 @@ class DirList(object):
 			select_path_list.append(self.dirs.get(idx))
 
 		ln = len(select_path_list)
-		s = "{0} in {1} items selected. Filters: {2}".\
+		s = "{0} of {1} items selected. Keyword filters: {2}".\
 		format(ln, self.searcher.total_work,self.search_filter)
 		self.ptext.set(s)
 
@@ -802,7 +802,7 @@ class DirList(object):
 		self.cwd.set(os.getcwd())
 		self.syn_dir(os.getcwd())
 
-		s = "{0} items. Filters: {1}".format(self.searcher.total_work,self.search_filter)
+		s = "{0} items. Keyword filters: {1}".format(self.searcher.total_work,self.search_filter)
 		self.ptext.set(s)
 ###############doLS()##########################################
 
@@ -1008,7 +1008,7 @@ class DirList(object):
 			if s_filters.strip() == '':
 				s_filters = "None"
 
-			s = "%d files, %d keywords analysed in %s, filters: '%s'."%(\
+			s = "%d files, %d keywords analysed in %s with keyword filters: '%s'."%(\
 				self.searcher.total_work,len(filtered_keywords)-1,ds, s_filters)
 			#print s
 			self.ptext.set(s)
@@ -1228,8 +1228,6 @@ class DirList(object):
 		#list clear way:
 		l_threads[:] = []
 		print("clear l_theads, id(l_threads =",id(l_threads))
-		#s = "{0} files, search filters: {1}".format(self.searcher.total_work,self.search_filter)
-		#self.ptext.set(s)
 		s = "stopped"
 		self.ptext.set(s)
 		#self.doLS()
