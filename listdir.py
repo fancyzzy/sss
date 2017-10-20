@@ -206,7 +206,7 @@ class DirList(object):
 		self.popup_menu = Menu(self.top, tearoff = 0)
 		#self.popup_menu.add_command(label='Open',command=self.setDirAndGo)
 		#multi open
-		self.popup_menu.add_command(label='Open',command=self.multi_open)
+		self.popup_menu.add_command(label='Open folder',command=self.folder_open)
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Unpack',command=self.untar)
 		self.popup_menu.add_separator()
@@ -430,9 +430,9 @@ class DirList(object):
 			#self.dirs.config(selectbackground=my_color_blue)
 			#m.post(event.x_root,event.y_root)
 
-	def multi_open(self,ev=None):
+	def folder_open(self,ev=None):
 		#print "DEBUG print list_var=",self.list_v.get()
-		print "multi_open called"
+		print "folder_open called"
 
 		select_file_list = []
 		index_list = self.dirs.curselection()
@@ -441,12 +441,17 @@ class DirList(object):
 
 		for file in select_file_list:
 			file = file.encode('gb2312')
-			cmd = [file]
+			p_folder = os.path.dirname(file)
+			cmd = ['start',p_folder]
 			try:
 				call_proc(cmd)
 			except Exception as e:
 				print "DEBUG call_proc error=",e
 				self.dirs.config(selectbackground='red')
+			else:
+				break
+				pass
+	############folder_open()#################
 
 	def my_decode(self,ev=None):
 
