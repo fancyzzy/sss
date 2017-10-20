@@ -296,7 +296,12 @@ class DirList(object):
 					self.start_thread_progressbar()
 
 					#record result in the file_path as a format of xx.res
-					result_file = os.path.join(file_path, 'search_result.txt')
+					result_file = ''
+					if os.path.isdir(file_path):
+						result_file = os.path.join(file_path, 'search_result.txt')
+					else:
+						result_file = os.path.join(\
+							os.path.dirname(file_path), 'search_result.txt')
 					record_result(SEARCH_RESULT_LIST, result_file)
 
 					#send email
