@@ -25,6 +25,7 @@ import multi_operates
 import time
 import my_ftp
 import tooltip
+import tkFileDialog
 #print sys.getdefaultencoding()
 
 FTP_TOP = None
@@ -72,7 +73,8 @@ class DirList(object):
 
 		self.dirn.bind('<Return>', self.doLS)
 		#self.dirn.focus_set()
-		self.ls = Button(self.dir_fm, text='List directory', command=self.doLS, activeforeground\
+		#self.ls = Button(self.dir_fm, text='List directory', command=self.doLS, activeforeground\
+		self.ls = Button(self.dir_fm, text='Open directory', command=self.open_dir, activeforeground\
 			='white', activebackground='orange')
 		self.ls.pack(side=RIGHT)
 		self.entry_label.pack(side=LEFT)
@@ -718,6 +720,19 @@ class DirList(object):
 		m.post(event.x_root,event.y_root)
 #####################listbox_Rclick()###################################
 
+	def open_dir(self,ev=None):
+		p = tkFileDialog.askdirectory()  # 返回目录路径
+		print("open directory:",p)
+		if 'unicode' in str(type(p)):
+			p = p.encode('utf-8')#.decode('gb2312')
+		elif 'str' in str(type(p)):
+			p = p.decode('utf-8')
+
+		print(p)
+		self.cwd.set(p)
+		self.doLS()
+	######open_dir()##############
+
 
 	def setDirAndGo(self, ev=None):
 		print "setDirAndGo"
@@ -739,7 +754,6 @@ class DirList(object):
 
 	def doLS(self, ev=None):
 		global FTP_TOP
-		print("DEBUG FTP_TOP=",FTP_TOP)
 		#print "DEBUG print list_var=",self.list_v.get()
 		print "doLS called"
 		error = ''
