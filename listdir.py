@@ -278,14 +278,13 @@ class DirList(object):
 					#which maybe used by auto_analyse
 					s = "Now detecting ftp downloaded files..."
 					self.ptext.set(s)
+					print("DEBUG wating to get file_path from FTP QUEUE..")
 					file_path = my_ftp.FTP_FILE_QUE.get()
-					#counting the total size of file_list:
-					file_list = sla.get_file_list(file_path,[])
-					s_total = get_file_list_size(file_list)
-					s = "ftp downloaded {0} files {1} detected".format(len(file_list),s_total)
-					self.ptext.set(s)
-					sleep(1.5)
-
+					print("DEBUG get! file_path = ",file_path)
+					print("DEBUG type(file_path) = ",type(file_path))
+					#exit this circle
+					if 'ftp quit' in file_path:
+						break
 					#display on the dirlist
 					self.dirs.delete(0, END)
 					current_dir = os.curdir.encode('gb2312').decode('utf-8')
@@ -294,7 +293,7 @@ class DirList(object):
 					self.dirs.insert(END,s)
 
 					#start search
-					self.auto_analyse(file_list, PRE_KEYWORD_LIST)
+					self.auto_analyse([file_path], PRE_KEYWORD_LIST)
 					self.start_thread_progressbar()
 
 					#record result in the file_path as a format of xx.res
@@ -317,24 +316,24 @@ class DirList(object):
 					pass
 
 		print("DEBUG monitor_Ftp_download quit")
+		s = "Detecting stopped"
+		self.ptext.set(s)
 		return
 	####################monitor_ftp_download()#######################
 
 
 	def menu_ftp_download_log(self):
 		global FTP_TOP
-		print "hello"
+		global l_threads
+		print "hello this is ftp function"
 		
 		ftp_top = my_ftp.My_Ftp(self.top)
 		FTP_TOP = ftp_top
-		print("\nDEBUG here to create a thread doing the analysing after ftp dowload")
-		print("ididididid ftp_top =", id(ftp_top))
 		t = threading.Thread(target=self.monitor_ftp_download, args=(ftp_top,))
 		l_threads.append(t)
-		print("DEBUG monitor_ftp_download thread=",t)
 		t.start()	
+	##########menu_ftp_download_log()#############
 
-		pass
 
 	def log_translate(self):
 		showinfo(title='Log Translate',message="To be done...")
@@ -849,6 +848,7 @@ class DirList(object):
 
 
 	def start_thread_analyse(self):
+		global l_threads
 
 		select_path_list = []
 		index_list = self.dirs.curselection()
@@ -1034,7 +1034,7 @@ class DirList(object):
 		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
 		#clean the threads list:
-		l_threads = []
+		l_threads[:] = []
 		#print 'DEBUG search finished length d_result = ',len(d_result)
 	##################thread_search()#########################
 
@@ -1195,17 +1195,16 @@ class DirList(object):
 		'''
 		global l_threads
 		global PRE_KEYWORD_LIST
-		print "DEBUG terminate threads start"
-		print "DEBUG id(l_threads)= {}, l_threads= {}".format(id(l_threads),l_threads)
+		#print "DEBUG id(l_threads)= {}, l_threads= {}".format(id(l_threads),l_threads)
 
 		alive_number = 0
 		for thread_x in l_threads:
 			if thread_x.is_alive():
-				print("thread:{} is still alive".format(thread_x))
+				#print("thread:{} is still alive".format(thread_x))
 				alive_number += 1
-		print("THere are still %d theads alive" % alive_number)
+		#print("THere are still %d theads alive" % alive_number)
 		if not alive_number:
-			print("DEBUG no alive threads, return")
+			#print("DEBUG no alive threads, return")
 			l_threads[:] = []
 			return
 
@@ -1220,14 +1219,13 @@ class DirList(object):
 		alive_number = 0
 		for thread_x in l_threads:
 			if thread_x.is_alive():
-				print("thread:{} is still alive".format(thread_x))
+				#print("thread:{} is still alive".format(thread_x))
 				alive_number += 1
 
 
 		sla.progress_q.queue.clear()
 		#list clear way:
 		l_threads[:] = []
-		print("clear l_theads, id(l_threads =",id(l_threads))
 		s = "stopped"
 		self.ptext.set(s)
 		#self.doLS()
@@ -1268,12 +1266,16 @@ def ask_quit(my_widget):
 		upload_ck_list()
 	#End: irone add
 	my_widget.terminate_threads()
+	#close ftp module threads
+	my_ftp.terminate_threads(my_ftp.MONITOR_THREADS)
+	my_ftp.terminate_threads(my_ftp.DIRECT_DOWNLOAD_THREADS)
+	my_ftp.terminate_threads(my_ftp.PROGRESS_THREADS)
 	if FTP_TOP:
 		FTP_TOP.ftp_top.destroy()
 		my_widget.top.destroy()
 	else:
 		my_widget.top.quit()
-	print("'Bye'")
+	print("'SLA quit.'")
 
 
 def main():
@@ -1284,7 +1286,7 @@ def main():
 	d.top.protocol("WM_DELETE_WINDOW",lambda :ask_quit(d))
 
 	cend = time.clock()
-	print("ctime used for startup:",cend-cstart)
+	print("'Startup time costs: %.2f seconds.'"%(cend-cstart))
 	d.top.mainloop()
 
 

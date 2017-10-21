@@ -56,7 +56,7 @@ if platform.system().lower() == 'windows':
 	DESKTOP_PATH = get_desktop()
 
 USER_NAME = DESKTOP_PATH.encode('utf-8').split('\\')[-2]
-print("DEBUG USER_NAME=",USER_NAME)
+print("'Welcome %s, SLA starts.'"%USER_NAME)
 ####get desktop name#########
 
 ###########custom keyword file########
@@ -93,33 +93,6 @@ def get_custom_keyword(ck_file=CK_FILE_PATH):
 		print('my_resources:debug, no custom keword file yet')
 ###########custom keyword file########
 
-#############ftp_log##################
-import Queue
-import time
-
-LOG_FILE = os.path.join(os.getcwd(), 'my_ftp.log')
-FTP_TIP_QUE = Queue.Queue()
-
-#here to be updated to logger
-def printl(s, saved = True):
-	global LOG_FILE
-	global FTP_TIP_QUE
-
-	if 'unicode' in str(type(s)):
-		s = s.encode('utf-8')
-
-	FTP_TIP_QUE.put(s)
-	print(s)
-
-	if saved:
-		try:
-			with open(LOG_FILE, 'a') as fobj:
-				fobj.write(s + '\n')
-		except Exception as e:
-			print "DEBUG wirte failed, e:",e
-	return
-#########recode_log()#######################
-
 
 def get_file_list_size(file_list):
 	size_total = 0
@@ -137,13 +110,17 @@ def get_file_list_size(file_list):
 
 	return s
 ############get_file_list_size()############
-
+import time
 def record_result(str_list, result_file = 'result.txt'):
 
 	with open(result_file, 'w') as fobj:
 		s = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))	
 		fobj.write("result of"+" " + s + '\r\n')
 		for str_line in str_list:
+			#unicode contain chinese can't not be write
+			#so convert to str type
+			if 'unicode' in str(type(str_line)):
+				str_line = str_line.encode('utf-8')
 			fobj.write(str_line + '\r\n')
 	return
 #########record_result()####################

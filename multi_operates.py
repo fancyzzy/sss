@@ -81,8 +81,10 @@ def files_unpack(path_list):
 	print('  unpack start')
 
 
+	print("DEBUG path_list=",path_list)
 	error = None
 	for i in range(ln):
+		item = path_list[i]
 		tip = "Unpacking[{0}/{1}]{2}".format(i+1,ln,path_list[i].encode('gb2312'))
 		PROGRESS_QUE.put(tip)
 
