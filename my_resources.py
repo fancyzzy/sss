@@ -15,7 +15,8 @@ my_color_green = '#%02x%02x%02x' % (192,233,17)
 l_threads = []
 PREDIFINED_KEYWORD = 'keywords.csv'
 resource = "resource"
-ico_file = "auto_searcher.ico"
+#ico_file = "auto.ico"
+ico_file = "auto_32.ico"
 icon_path = os.path.join(os.getcwd(),os.path.join(resource,ico_file))
 
 def read_keyword_file(keyword_file):
@@ -91,6 +92,7 @@ def get_custom_keyword(ck_file=CK_FILE_PATH):
 		return l_ck
 	else:
 		print('my_resources:debug, no custom keword file yet')
+		return None
 ###########custom keyword file########
 
 
