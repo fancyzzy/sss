@@ -4,6 +4,7 @@
 
 #import os
 from time import sleep
+from datetime import datetime
 from Tkinter import *
 import ttk
 from tkMessageBox import *
@@ -108,7 +109,7 @@ class DirList(object):
 
 
 		self.search_fm = Frame(self.top)
-		self.search_label = Label(self.search_fm, text="Find for: ")
+		self.search_label = Label(self.search_fm, text="Search for: ")
 
 		#search keyword entry -> combobox
 		#self.search_entry = Entry(self.search_fm, width=30,textvariable=self.keyword)
@@ -133,6 +134,14 @@ class DirList(object):
 		self.combo_search.focus_set()
 		self.search_label.pack(side=LEFT)
 		self.combo_search.pack(side=LEFT)
+
+		#feature files type filtering
+		Label(self.search_fm, text="in files of: ").pack(side=LEFT)			
+		self.v_files_types = StringVar()
+		self.v_files_types.set('.*\.txt;.*\.out')
+		self.entry_files_type = Entry(self.search_fm, width=30, textvariable=self.v_files_types)
+		self.entry_files_type.pack(side=LEFT)
+
 
 		#terminate button
 		self.stop_b = Button(self.search_fm, text="Stop", command=self.terminate_threads)
@@ -882,13 +891,12 @@ class DirList(object):
 		self.popup_menu.entryconfig("Search", state="disable")
 
 		########multi_operates 1.unpack, 2.decode, 3.search###############
-		multi_operates.do_operates(path_list, keyword_list)
+		files_types_list = self.v_files_types.get().strip().split(';')
+		multi_operates.do_operates(path_list, keyword_list, files_types_list)
 		self.show_result(keyword_list, multi_operates.search_result)
 		
-		print("DEBUG button starts to recover")
 		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
-		print("DEBUG button recovered")
 		print "auto_analyse finished"
 
 ################auto_ananlyse()#########################
@@ -1054,12 +1062,18 @@ class DirList(object):
 		self.dirs.insert(END, current_dir)
 		srl.append(current_dir)
 		no_find = True
+		s = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+		self.dirs.insert(END,s)
 		if ln > 1:
-			s = "-"*20 + u"Predefined Keywords Searching Result" + "-"*20
+			s = u" Predefined Keywords Searching"
 		else:
-			s = "-"*20 + u"Custom Keyword Searching Result" + "-"*20
+			s = u" Customed Keyword Searching"
+
+		s = s + '(' + self.v_files_types.get() + ') ' + 'Results:'
+
 		if is_incompleted:
-			s = "-"*20 + u"Searching Result(incompleted)" + "-"*20
+			s = '(incompleted)'+ s
+
 		self.dirs.insert(END,s)
 		srl.append(s)
 		

@@ -81,7 +81,6 @@ def files_unpack(path_list):
 	print('  unpack start')
 
 
-	print("DEBUG path_list=",path_list)
 	error = None
 	for i in range(ln):
 		item = path_list[i]
@@ -186,22 +185,45 @@ def single_file_search(file_name, keyword_list):
 
 
 @sla.time_interval
-def files_search(path_list, keyword_list, start_stop = None):
+def files_search(path_list, keyword_list, files_types_list=None, start_stop = None):
 	#global progress_q
 	global search_result
 	
 	search_result = {}
+	searched_file_number = 0
 
 	file_list = []
+	original_file_list = []
 	for path in path_list:
-		file_list.extend(sla.get_file_list(path,[]))
+		original_file_list.extend(sla.get_file_list(path,[]))
+
+
+	#filter file_list:
+	#1. only left according to files_types
+	print("  files_search, 1.fitler out, files_types=",files_types_list)
+	if files_types_list:
+
+		re_f = ''
+		for i in range(len(files_types_list)):
+			files_types_list[i] = '(' + files_types_list[i] + ')'
+		re_f = '|'.join(files_types_list)
+		# re_filters = r'(.*\.txt)|(.*\.out)'
+
+		#print("DEBUG re_filter=",re_f)
+		re_filter = re.compile(re_f)
+		for file in original_file_list:
+			if re_filter.search(file):
+				file_list.append(file)
+			else:
+				#file not in the filter_types
+				pass
 
 	#start_stop = '20171009_222222_20171009_333333'
 	#file_list = filter_start_stop(file_list, filter_word)
 
-	print('  search start')
+	print('  files_search, 2.search start')
 
-	#filter out those not necessary searched files
+	#2. filter out those not necessary searched files
 	not_search_sufx_list = [r".rtrc", r".rtrc_backup"]
 	ln = len(not_search_sufx_list)
 
@@ -222,14 +244,18 @@ def files_search(path_list, keyword_list, start_stop = None):
 			tip = "Searching[{0}/{1}]{2}".format(i+1,ln_files,s)
 			PROGRESS_QUE.put(tip)
 			l_res = single_file_search(file_list[i],keyword_list)
+			searched_file_number += 1
 			for item in l_res:
 				search_result.setdefault(item,[]).append(file_list[i])
+		else:
+			#do not search '.rtrc','.rtrc_backup'..
+			pass
 
-	return search_result
+	return search_result,searched_file_number
 ###############files_search#################################
 
 @sla.time_interval
-def do_operates(path_list, keyword_list):
+def do_operates(path_list, keyword_list, files_types_list=None):
 	global search_result
 	global PROGRESS_QUE
 
@@ -249,12 +275,16 @@ def do_operates(path_list, keyword_list):
 	tmp = tmp + sla.interval
 	#3. search
 	PROGRESS_QUE.put("Search start")
-	search_result = files_search(new_path_list, keyword_list)
+	search_result,searched_number = files_search(new_path_list, keyword_list, files_types_list)
 	PROGRESS_QUE.put("Search finished, time used = %s"%(used_time()))
 
 	tmp = tmp + sla.interval
 	sla.interval = tmp
-	PROGRESS_QUE.put("All done, time used =%s"%(used_time()))
+
+	#send 'All done flag to listdir.py'
+	s = 'All done, %d files, %d keywords analysed in %s'\
+	 %(searched_number, len(keyword_list), used_time())
+	PROGRESS_QUE.put(s)
 
 ##############multi_operates############################
 
