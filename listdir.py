@@ -142,6 +142,8 @@ class DirList(object):
 		self.entry_files_type = Entry(self.search_fm, width=30, textvariable=self.v_files_types)
 		self.entry_files_type.pack(side=LEFT)
 
+		fs = "Refer to Python Regular Expression\n '.*'means any characters\n use ';' to seperate"
+		tooltip.ToolTip(self.entry_files_type, msg=None, msgFunc=lambda : fs, follow=True, delay=0.2)
 
 		#terminate button
 		self.stop_b = Button(self.search_fm, text="Stop", command=self.terminate_threads)
