@@ -327,6 +327,7 @@ class DirList(object):
 		global l_threads
 		print "hello this is ftp function"
 		
+		#how to singleton?
 		ftp_top = my_ftp.My_Ftp(self.top)
 		FTP_TOP = ftp_top
 		t = threading.Thread(target=self.monitor_ftp_download, args=(ftp_top,))
