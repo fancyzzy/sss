@@ -126,10 +126,11 @@ class DirList(object):
 		self.ck_file = os.path.join(WORKING_PATH, 'custom_keyword.txt')
 		self.ck_list = []
 		self.ck_list = get_custom_keyword()
-		value = self.ck_list[-10:]
-		value.reverse()
-		self.combo_search['values'] = value
-		self.ck_list = []
+		if self.ck_list:
+			value = self.ck_list[-10:]
+			value.reverse()
+			self.combo_search['values'] = value
+			self.ck_list = []
 
 		self.combo_search.focus_set()
 		self.search_label.pack(side=LEFT)
