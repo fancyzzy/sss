@@ -322,7 +322,7 @@ class auto_searcher(object):
 	
 		while True:
 			print "\n"
-			title = "Hello, Welcome to BSC SLA v2.0"
+			title = "Hello, Welcome to BSC SLA v1.0"
 			print title.center(70),
 			print
 			print ("file path:"),self.file_path

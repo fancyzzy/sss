@@ -869,10 +869,16 @@ class DirList(object):
 			select_path_list.append(self.dirs.get(idx))
 
 
+
+
 		if len(select_path_list) > 0:
 
 			#Check if keyword is filtered by filters or customized keyword
 			filtered_keyword_list = self.filter_keyword()
+
+			#no thread:
+			#self.auto_analyse(select_path_list, filtered_keyword_list)
+
 			t = threading.Thread(target=self.auto_analyse, args=(select_path_list, filtered_keyword_list))
 			#for terminating purpose
 			l_threads.append(t)
@@ -901,7 +907,8 @@ class DirList(object):
 		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
 		print "auto_analyse finished"
-
+		#sound a bell
+		self.label.bell()
 ################auto_ananlyse()#########################
 
 
