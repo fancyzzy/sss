@@ -1,6 +1,7 @@
 import os
 import sys
 from Tkinter import *
+#from tkinter import *
 import dnd
 #s = r"C:\Users\tarzonz\Desktop\sla_new\tkdnd2.7"
 #os.environ['TKDND_LIBRARY'] = r"C:\Users\tarzonz\Desktop\sla_new\tkdnd2.7"
@@ -102,11 +103,12 @@ class DnD:
 #############--demo code--########################################
 
 def test():
-    import Tkinter
-    root = Tkinter.Tk()
+    #import Tkinter
+    #from Tkniter import *
+    root = Tk()
     dnd = DnD(root)
-    Tkinter.Label(root, text='Drop files from your file manager into the listbox').pack(side='top')
-    l = Tkinter.Listbox(root)
+    Label(root, text='Drop files from your file manager into the listbox').pack(side='top')
+    l = Listbox(root)
     l.pack(side='top', fill='both', expand=1)
     root.update()# may be necessary on unix
     # now make the listbox a drop target:

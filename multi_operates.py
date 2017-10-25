@@ -9,10 +9,25 @@ import os
 import re
 import Queue
 import collections
+import subprocess
 #analyse_file_type = ("rtrc","bssim","txt")
 
 search_result = {}
 PROGRESS_QUE = Queue.Queue()
+
+
+
+def call_proc(cmd):
+	'''
+	This function to call a process to run outside programme
+	'''
+	#p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+	try:
+		p = subprocess.Popen(cmd, shell=True)
+	except Exception as e:
+		print "DEBUG subprocess error e =",e
+########call_proc()####################	
+
 
 
 def used_time():
@@ -281,11 +296,8 @@ def do_operates(path_list, keyword_list, files_types_list=None):
 	tmp = tmp + sla.interval
 	sla.interval = tmp
 
-	#send 'All done flag to listdir.py'
-	s = 'All done, %d files, %d keywords analysed in %s'\
-	 %(searched_number, len(keyword_list), used_time())
-	PROGRESS_QUE.put(s)
 
+	return search_result,searched_number
 ##############multi_operates############################
 
 

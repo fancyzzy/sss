@@ -2,7 +2,7 @@
 #-*-coding:utf-8-*-
 
 
-from tkinter import *
+from Tkinter import *
 from time import time, localtime, strftime
 
 
