@@ -3,10 +3,13 @@
 
 
 #import os
+#this package make Tkinter in python2 thread-safe!
+#effectively decreas the crash occurance.
+import mttkinter as Tkinter
 from time import sleep
 from datetime import datetime
 from Tkinter import *
-import ttk
+from ttk import Combobox
 from tkMessageBox import *
 from Dialog import *
 import sla_multi_threads as sla 
@@ -83,8 +86,8 @@ class DirList(object):
 		self.dir_fm.pack()	
 
 		self.dirfm = Frame(self.top)
-		#self.dirsby = Scrollbar(self.dirfm)
-		#self.dirsby.pack(side=RIGHT, fill=Y)
+		self.dirsby = Scrollbar(self.dirfm)
+		self.dirsby.pack(side=RIGHT, fill=Y)
 		#self.dirsbx = Scrollbar(self.dirfm,orient=HORIZONTAL)
 		#self.dirsbx.pack(side=BOTTOM, fill=X)
 
@@ -96,13 +99,14 @@ class DirList(object):
 			exportselection=1,listvariable=self.list_v)
 		#2017.8.23 BUG: 滚动轴导致程序挂掉，原因可能是由于多线程子线程更新GUI界面
 		#产生内部错误导致
-		#self.dirs['yscrollcommand'] = self.dirsbx.set
-		#self.dirs['xscrollcommand'] = self.dirsbx.set
+		#2017.10.25,fixthis BUG, 要想thread-safe，使用python3，或者使用mttkinter模块！
 		self.dirs.bind('<Double-1>', self.setDirAndGo)
 		self.dirs.bind('<1>', lambda event:self.listbox_click(event))
 		self.dirs.bind('<ButtonRelease-1>', lambda event:self.listbox_click_release(event))
 		#self.dirs.bind('<3>', self.listbox_Rclick)
-		#self.dirsby.config(command=self.dirs.yview)
+		self.dirs['yscrollcommand'] = self.dirsby.set
+		self.dirsby.config(command=self.dirs.yview)
+		#self.dirs['xscrollcommand'] = self.dirsbx.set
 		#self.dirsbx.config(command=self.dirs.xview)
 		self.dirs.pack(expand=YES, fill=BOTH)
 		self.dirfm.pack(expand=YES,fill=BOTH)
@@ -113,7 +117,7 @@ class DirList(object):
 
 		#search keyword entry -> combobox
 		#self.search_entry = Entry(self.search_fm, width=30,textvariable=self.keyword)
-		self.combo_search = ttk.Combobox(self.search_fm, width=30,textvariable=self.keyword)
+		self.combo_search = Combobox(self.search_fm, width=30,textvariable=self.keyword)
 		#This is for keywords.csv data
 		self.keyword.set(PREDIFINED_KEYWORD)
 		#self.combo_search.bind('<Return>', self.get_default_keywords)
