@@ -200,7 +200,7 @@ class DirList(object):
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Search',command=self.cm_start_file_search)
 		self.popup_menu.add_separator()
-		self.popup_menu.add_command(label='Decode',command=self.my_decode)
+		self.popup_menu.add_command(label='Decode',command=self.cm_start_bsc_decode)
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Repetion',command=self.my_repeat)
 		#popup_menu.entryconfig("Open", state="disable")
@@ -459,31 +459,41 @@ class DirList(object):
 				break
 				pass
 
-	def my_decode(self,ev=None):
-		print "my_decode called"
-		s = u"decoding is under process. please wait..."
-		self.ptext.set(s)
+	def cm_start_bsc_decode(self,ev=None):
 
-		select_file_list = []
+		print("DEBUG cm_start_bsc_decode")
+		select_path_list = []
 		index_list = self.listbox_dirs.curselection()
 		for idx in index_list:
-			select_file_list.append(self.listbox_dirs.get(idx))
+			select_path_list.append(self.listbox_dirs.get(idx))
 
-		my_decoder.decode_log(select_file_list)
-
-		ds = ''
-		if sla.interval > 1000:
-			duration = sla.interval/60.0
-			ds = "%.1f minutes"%(duration)
+		if len(select_path_list) > 0:
+			t = threading.Thread(target=self.bsc_decode, args=(select_path_list,))
+			#for terminating purpose
+			l_threads.append(t)
+			t.start()	
+			self.start_thread_progressbar()
 		else:
-			duration = sla.interval * 1.0
-			ds = "%.1f seconds"%(duration)
-		print "Finished, time used:",ds
+			print("DEBUG no select")
+			pass
 
-		s = "decode finished, time used:{0}".format(ds)
-		self.ptext.set(s)
-		self.refresh_listbox(os.getcwd())
-		showinfo(title='Decode', message="Decode finished.")
+
+	def bsc_decode(self,path_list):
+
+		s = u"{0} is under decode process. please wait...".format(path_list)
+		multi_operates.PROGRESS_QUE.put(s)
+		
+		multi_operates.files_decode(path_list)
+
+		tip = 'All done, decode finished, time uese:{0}'.format(multi_operates.used_time())
+		multi_operates.PROGRESS_QUE.put(tip)
+
+		new_path = os.path.dirname(path_list[-1])
+		self.refresh_listbox(new_path)
+
+		self.label_title.bell()
+		print("DEBUG decode finished")
+
 
 	def my_repeat(self, ev=None):
 		'''
