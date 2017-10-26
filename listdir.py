@@ -34,7 +34,7 @@ NO_KEYWORD_FIND = True
 class DirList(object):
 	def __init__(self, initdir=None):
 		self.top = Tk()
-		self.top.geometry('750x460+180+180')
+		self.top.geometry('750x460+340+180')
 		self.top.wm_title("SLA2.4")
 
 		#Label(self.top, text='').pack()
@@ -51,7 +51,7 @@ class DirList(object):
 		self.entry_dir = Entry(fm_directory, width=80, textvariable=self.cwd)
 		self.entry_dir.bind('<Return>', self.enter_directory)
 		self.button_dir = Button(fm_directory, text='List directory', \
-			command=self.open_dir, activeforeground='white', activebackground='orange')
+			command=self.choose_dir, activeforeground='white', activebackground='orange')
 		self.button_dir.pack(side=RIGHT)
 		self.entry_label.pack(side=LEFT)
 		self.entry_dir.pack(side=LEFT)
@@ -213,7 +213,6 @@ class DirList(object):
 			#右击可以弹出菜单，用lambda的写法可以传递参数
 			self.listbox_dirs.bind('<3>', lambda event: self.listbox_Rclick(event,self.popup_menu))
 
-
 		if initdir:
 			#self.cwd.set(os.getcwd())
 			#desktop is default path
@@ -238,13 +237,7 @@ class DirList(object):
 
 
 	def menu_decode_log(self):
-		#新建一个隶属于self.top的子窗口
-		#会随着主窗口关闭而关闭
-		#decode_top = Toplevel(self.top)
 		decode_window = RTTP_decoder.rttp(self.top)
-		#sleep(3)
-		#decode_window.decode_top.destroy()
-		#decode_window.decode_top.bell()
 
 
 	def monitor_ftp_download(self, ftp_top):
@@ -434,6 +427,60 @@ class DirList(object):
 				self.listbox_dirs.config(selectbackground='red')
 	##############################
 
+	###########context menu functions#####################
+	def cm_start_file_search(self,ev=None):
+		global l_threads
+
+		print ("Start_file_search")
+		#There is a problem when no filter a crash will occur after do_search
+		if self.search_filter[0] == 'none' and self.keyword.get() == PREDIFINED_KEYWORD:
+			showwarning(title='No filters', message="No keywords to search!")
+			#self._Thread__stop()
+			return
+
+		select_path_list = []
+		index_list = self.listbox_dirs.curselection()
+		for idx in index_list:
+			select_path_list.append(self.listbox_dirs.get(idx))
+
+		if len(select_path_list) > 0:
+
+			filtered_keyword_list = self.filter_keyword()
+			t = threading.Thread(target=self.file_search, \
+				args=(select_path_list, filtered_keyword_list))
+			l_threads.append(t)
+			t.start()	
+
+			self.start_thread_progressbar()
+		else:
+			print("DEBUG no item seleted")
+
+	def file_search(self,path_list, keyword_list):
+		global l_threads
+
+		s = "Please wait..."	
+		self.search_b.config(text=s,bg='orange',relief='sunken',state='disabled')
+		self.popup_menu.entryconfig("Search", state="disable")
+
+		#use multi_operates:
+		multi_operates.PROGRESS_QUE.put("Search start")
+		files_types_list = self.v_files_types.get().strip().split(';')
+		search_result,searched_number = \
+		multi_operates.files_search(path_list, keyword_list, files_types_list)
+		multi_operates.PROGRESS_QUE.put("Search finished, generating results...")
+
+		self.show_result(keyword_list, search_result)
+
+		s = 'All done, %d files, %d keywords searched in %s'\
+		 %(searched_number, len(keyword_list), multi_operates.used_time())
+		multi_operates.PROGRESS_QUE.put(s)
+
+		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
+		self.popup_menu.entryconfig("Search", state="normal")
+		self.label_title.bell()
+		print "file_search finished"
+	##################file_search()#########################
+
 	def cm_folder_open(self,ev=None):
 		#print "DEBUG print list_var=",self.list_v.get()
 		print "cm_folder_open called"
@@ -456,8 +503,8 @@ class DirList(object):
 				break
 				pass
 
-	def cm_start_bsc_decode(self,ev=None):
 
+	def cm_start_bsc_decode(self,ev=None):
 		print("DEBUG cm_start_bsc_decode")
 		select_path_list = []
 		index_list = self.listbox_dirs.curselection()
@@ -474,26 +521,20 @@ class DirList(object):
 			print("DEBUG no select")
 			pass
 
-
 	def bsc_decode(self,path_list):
-
 		s = u"{0} is under decode process. please wait...".format(path_list)
 		multi_operates.PROGRESS_QUE.put(s)
 		
 		multi_operates.files_decode(path_list)
-
 		tip = 'All done, decode finished, time uese:{0}'.format(multi_operates.used_time())
 		multi_operates.PROGRESS_QUE.put(tip)
 
 		new_path = os.path.dirname(path_list[-1])
 		self.refresh_listbox(new_path)
-
 		self.label_title.bell()
 		print("DEBUG decode finished")
 
-
 	def cm_start_logline_count(self,ev=None):
-
 		print("DEBUG cm_start_logline_count")
 		select_path_list = []
 		index_list = self.listbox_dirs.curselection()
@@ -517,20 +558,16 @@ class DirList(object):
 		'''
 		counting the repeated log occurences
 		'''
-
 		s = "Please wait..."	
 		self.search_b.config(text=s,bg='orange',relief='sunken',state='disabled')
 		self.popup_menu.entryconfig("Search", state="disable")
 
-		#use multi_operates:
 		multi_operates.PROGRESS_QUE.put("Counting start")
 		files_types_list = self.v_files_types.get().strip().split(';')
 		l_result,counted_number = \
 		multi_operates.files_lines_count(path_list, top_rank, files_types_list)
-
 		multi_operates.PROGRESS_QUE.put("Counting finished, generating results...")
 
-		#self.show_result(keyword_list, search_result)
 		self.listbox_dirs.delete(0, END)
 		self.listbox_dirs.insert(END, os.curdir)
 		s = u"-----------Counting Lines Repetition Top %d Results--------------------"%(top_rank)
@@ -549,7 +586,6 @@ class DirList(object):
 			self.listbox_dirs.insert(END,s)
 			self.listbox_dirs.itemconfig(END,fg=my_color_blue)
 
-
 		s = 'All done, counting finished, %d files, counted in %s'\
 		 %(counted_number, multi_operates.used_time())
 		multi_operates.PROGRESS_QUE.put(s)
@@ -558,8 +594,6 @@ class DirList(object):
 		self.popup_menu.entryconfig("Search", state="normal")
 		self.label_title.bell()
 		print "lines count finished"
-
-
 
 
 	def cm_start_unpack(self,ev=None):
@@ -604,11 +638,9 @@ class DirList(object):
 
 		def drag(action, actions, type, win, X, Y, x, y, data):
 			return action
-
 		def drag_enter(action, actions, type, win, X, Y, x, y, data):
 			widget.focus_force()
 			return action
-
 		def drop(action, actions, type, win, X, Y, x, y, data):
 			self.listbox_dirs.delete(1, END)
 			os_sep = os.path.sep
@@ -636,7 +668,6 @@ class DirList(object):
 		dd.bindtarget(widget, 'text/uri-list', '<Drag>', drag, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y', '%D'))
 		dd.bindtarget(widget, 'text/uri-list', '<DragEnter>', drag_enter, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y', '%D'))
 		dd.bindtarget(widget, 'text/uri-list', '<Drop>', drop, ('%A', '%a', '%T', '%W', '%X', '%Y', '%x', '%y', '%D')) #Drag and Drop
-	###############Drag and Drop feature:########################
 
 	def refine_data(self, data):
 		flag = 0
@@ -649,10 +680,9 @@ class DirList(object):
 			if data[i] == ' ' and flag == 0:
 				#print "DEBUG data[:i-1]",data[:i]
 				data = data[:i] + "," + data[i+1:]
-
 		l = data.split(',')
 		return l
-###############Drag and Drop feature:########################
+	###############Drag and Drop feature:########################
 
 	def syn_item_number(self, path):
 		self.current_path_item_number = len(os.listdir(path))
@@ -663,7 +693,6 @@ class DirList(object):
 		#this function is ahead of dirlist selection
 		#so can't get the selection from this function
 		#use click release function
-
 
 	def listbox_click_release(self, event):
 		print("click release")
@@ -681,9 +710,6 @@ class DirList(object):
 		format(ln, self.current_path_item_number,self.search_filter)
 		self.ptext.set(s)
 
-	###########listbox_click_release()###########
-
-
 	def listbox_Rclick(self,event,m):
 		#实现右击弹出菜单，在选择的line上
 		print "listbox R click"
@@ -696,10 +722,7 @@ class DirList(object):
 		#self.listbox_dirs.selection_clear(0,last_index)
 		self.listbox_dirs.selection_set(line_index,line_index)
 		self.listbox_dirs.config(selectbackground=my_color_blue)
-
-
 		self.current_path_item_selected_number = len(self.listbox_dirs.curselection())
-
 		#check untar possible:
 		index_list = self.listbox_dirs.curselection()
 		re_pattern = r'(\.tar\.gz$)|(\.gz$)|(\.tar$)|(\.tgz$)'
@@ -725,9 +748,9 @@ class DirList(object):
 
 		#popup right contextual menu
 		m.post(event.x_root,event.y_root)
-#####################listbox_Rclick()###################################
 
-	def open_dir(self,ev=None):
+
+	def choose_dir(self,ev=None):
 		p = tkFileDialog.askdirectory()  # 返回目录路径
 		print("open directory:",p)
 		if 'unicode' in str(type(p)):
@@ -735,11 +758,8 @@ class DirList(object):
 		elif 'str' in str(type(p)):
 			p = p.decode('utf-8')
 
-		print(p)
 		self.cwd.set(p)
 		self.enter_directory()
-	######open_dir()##############
-
 
 	def setDirAndGo(self, ev=None):
 		print "setDirAndGo"
@@ -788,7 +808,7 @@ class DirList(object):
 		if error:
 			self.cwd.set(error)
 			self.top.update()
-			print "DEBUG error in DoLS"
+			print "DEBUG error in enter_directory"
 			sleep(0.2)
 
 			#这个self.last是什么意思？
@@ -799,16 +819,11 @@ class DirList(object):
 				self.top.update()
 				return
 		else:
-
-			#self.top.update()
 			self.refresh_listbox(tdir)
-
 		self.cwd.set(os.getcwd())
 		self.syn_item_number(os.getcwd())
-
 		s = "{0} items. Keyword filters: {1}".format(self.current_path_item_number,self.search_filter)
 		self.ptext.set(s)
-###############enter_directory()##########################################
 
 	def refresh_listbox(self, dir_path):
 
@@ -864,18 +879,14 @@ class DirList(object):
 
 			#Check if keyword is filtered by filters or customized keyword
 			filtered_keyword_list = self.filter_keyword()
-
 			t = threading.Thread(target=self.auto_analyse, args=(select_path_list, filtered_keyword_list))
 			#for terminating purpose
 			l_threads.append(t)
 			t.start()	
-
 			self.start_thread_progressbar()
-
 		else:
-			print "No file selected"
+			print ("No file selected")
 ##########start_thread_analyse()###############
-
 
 	def auto_analyse(self, path_list, keyword_list):
 		'''
@@ -893,7 +904,7 @@ class DirList(object):
 		multi_operates.PROGRESS_QUE.put("Analysing finished, generating results...")
 		self.show_result(keyword_list, multi_operates.search_result)
 		
-			#send 'All done flag to listdir.py'
+		#send 'All done flag to listdir.py'
 		s = 'All done, %d files, %d keywords analysed in %s'\
 		 %(searched_number, len(keyword_list), multi_operates.used_time())
 		multi_operates.PROGRESS_QUE.put(s)
@@ -905,15 +916,16 @@ class DirList(object):
 		self.label_title.bell()
 ################auto_ananlyse()#########################
 
-
 	def start_thread_progressbar(self):
+		'''
+		this thread is for job process displaying in
+		the bottom of sla
+		'''
 		global l_threads
 		t = threading.Thread(target=self.progressbar)
 		l_threads.append(t)
 		print("DEBUG start_thead_progressbar: thread=",t)
 		t.start()
-##################start_thread_progressbar()##########
-
 
 	def progressbar(self):
 		global l_threads
@@ -925,10 +937,7 @@ class DirList(object):
 		#self.pro_label.update()
 
 		pq = multi_operates.PROGRESS_QUE
-		
 		while 1:
-			#print("all thread state:", l_threads)
-			#sleep(1)
 			alive_number = 0
 			for thread_x in l_threads:
 				if thread_x.is_alive():
@@ -948,67 +957,9 @@ class DirList(object):
 				#bug 11
 				if "All done" in s:
 					break
-		print "progressbar end"
+		print ("progressbar end")
 		return
 ##################progressbar()################################
-
-
-	#开启一个线程进行搜索关键字，防止主线程被挂起
-	def cm_start_file_search(self,ev=None):
-		global l_threads
-
-		print "Start_file_search"
-		#There is a problem when no filter a crash will occur after do_search
-		if self.search_filter[0] == 'none' and self.keyword.get() == PREDIFINED_KEYWORD:
-			showwarning(title='No filters', message="No keywords to search!")
-			#self._Thread__stop()
-			return
-
-		select_path_list = []
-		index_list = self.listbox_dirs.curselection()
-		for idx in index_list:
-			select_path_list.append(self.listbox_dirs.get(idx))
-
-		if len(select_path_list) > 0:
-
-			filtered_keyword_list = self.filter_keyword()
-			t = threading.Thread(target=self.file_search, \
-				args=(select_path_list, filtered_keyword_list))
-			l_threads.append(t)
-			t.start()	
-
-			self.start_thread_progressbar()
-		else:
-			print("DEBUG no item seleted")
-
-
-	def file_search(self,path_list, keyword_list):
-		global l_threads
-
-		s = "Please wait..."	
-		self.search_b.config(text=s,bg='orange',relief='sunken',state='disabled')
-		self.popup_menu.entryconfig("Search", state="disable")
-
-		#use multi_operates:
-		multi_operates.PROGRESS_QUE.put("Search start")
-		files_types_list = self.v_files_types.get().strip().split(';')
-		search_result,searched_number = \
-		multi_operates.files_search(path_list, keyword_list, files_types_list)
-		multi_operates.PROGRESS_QUE.put("Search finished, generating results...")
-
-		self.show_result(keyword_list, search_result)
-
-		s = 'All done, %d files, %d keywords searched in %s'\
-		 %(searched_number, len(keyword_list), multi_operates.used_time())
-		multi_operates.PROGRESS_QUE.put(s)
-
-		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
-		self.popup_menu.entryconfig("Search", state="normal")
-		self.label_title.bell()
-		print "file_search finished"
-
-	##################file_search()#########################
-
 
 	def show_result(self, key_words, d_result, is_incompleted = False):
 		global SEARCH_RESULT_LIST
@@ -1038,7 +989,6 @@ class DirList(object):
 
 		self.listbox_dirs.insert(END,s)
 		srl.append(s)
-		
 
 		j = 0
 		for i in range(ln):
@@ -1063,23 +1013,16 @@ class DirList(object):
 				s =u"[File Occurence]:{0}".format(nn)
 				self.listbox_dirs.insert(END,s)
 				srl.append(s)
-				#self.listbox_dirs.itemconfig(END,fg=my_color_blue)
-				#if lk[3].strip() != '':
-				#	lk[3]=lk[3].encode('utf-8')
-				#	s =lk[3]
-				#	self.listbox_dirs.insert(END,s)
 				for file in d_result[lk[0]]:
 					s = file
 					if not s:
 						print "DEBUG s= None:",s
 					try:
-						sleep(0.01)
 						self.listbox_dirs.insert(END,s)
 						srl.append(s)
 					except Exception as e:
 						print 'error here e=',e
 						print "insert(END,s) where s=",s
-				#s = "-"*20
 				s = ' '
 				self.listbox_dirs.insert(END,s)
 				srl.append(s)
@@ -1094,21 +1037,19 @@ class DirList(object):
 			self.listbox_dirs.insert(END,s)
 			srl.append(s)
 
-
+		#update custom keyword using history
 		if self.keyword.get() != PREDIFINED_KEYWORD:
 			self.ck_list.append(self.keyword.get())
 			value = list(self.combo_search['values'])
 			value.insert(0, self.keyword.get())
 			self.combo_search['values'] = value
 
-
 		#clear the search result which can not be used by terminate thread function
 		d_result.clear()
 		NO_KEYWORD_FIND = no_find
-
 ###############show_result#######################
 
-
+	#########force to close thread##############
 	def _async_raise(self,tid, exctype):
 		"""raises the exception, performs cleanup if needed"""
 		tid = ctypes.c_long(tid)
@@ -1167,7 +1108,7 @@ class DirList(object):
 		if len(s_re) > 0:
 			filtered_keyword_list = self.filter_keyword()
 			self.show_result(PRE_KEYWORD_LIST, s_re, True)
-
+############class DirList(object)#############################
 
 def upload_ck_list():
 	print("upload_ck_list, start")
@@ -1181,9 +1122,11 @@ def upload_ck_list():
 	remote_path = os.path.join(REMOTE_CK_DIR_PATH, (USER_NAME + '_' + file_name))
 
 	res =  my_ftp.my_upload(host, port, acc, pwd, file_path, remote_path)
+	if not res:
+		print("DEBUG upload failed")
+
 	return res
 ##########upload_ck_list()################
-
 
 def ask_quit(my_widget):
 	global FTP_TOP
@@ -1201,6 +1144,8 @@ def ask_quit(my_widget):
 	my_ftp.terminate_threads(my_ftp.DIRECT_DOWNLOAD_THREADS)
 	my_ftp.terminate_threads(my_ftp.PROGRESS_THREADS)
 	if FTP_TOP:
+		#close ftp first if it is running
+		#and then must use destroy to close
 		FTP_TOP.ftp_top.destroy()
 		my_widget.top.destroy()
 	else:
@@ -1230,5 +1175,3 @@ def main():
 
 if __name__ == '__main__':
 	main()		
-
-
