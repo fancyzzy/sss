@@ -12,7 +12,6 @@ from Tkinter import *
 from ttk import Combobox
 from tkMessageBox import *
 from Dialog import *
-import sla_multi_threads as sla 
 import threading
 import dnd
 import copy
@@ -36,13 +35,13 @@ NO_KEYWORD_FIND = True
 class DirList(object):
 	def __init__(self, initdir=None):
 		self.top = Tk()
-		self.top.geometry('850x560+280+140')
+		self.top.geometry('750x460+180+180')
 		self.top.wm_title("SLA2.4")
 
-		Label(self.top, text='').pack()
+		#Label(self.top, text='').pack()
 
 		self.label_title = Label(self.top, text='Site Log Analyzer v2.4',\
-			font = ('Helvetica', 12, 'bold'), fg= my_color_blue_office)
+			font = ('Helvetica', 16, 'bold'), fg= my_color_blue_office)
 		self.label_title.pack()
 
 		self.top.iconbitmap(icon_path)
@@ -62,14 +61,14 @@ class DirList(object):
 		fm_listbox = Frame(self.top)
 		self.listbox_dirsby = Scrollbar(fm_listbox)
 		self.listbox_dirsby.pack(side=RIGHT, fill=Y)
-		#self.listbox_dirsbx = Scrollbar(fm_listbox,orient=HORIZONTAL)
-		#self.listbox_dirsbx.pack(side=BOTTOM, fill=X)
+		self.listbox_dirsbx = Scrollbar(fm_listbox,orient=HORIZONTAL)
+		self.listbox_dirsbx.pack(side=BOTTOM, fill=X)
 
 		self.list_v = StringVar()
 		#selectmode=EXTENDED,BROWSE,MULTIPLE,SINGLE
 		#exportselection is used to enable "ctrl+c" to copy the content selected 
 		#in the listbox into the windows clipboard when =1
-		self.listbox_dirs = Listbox(fm_listbox, height=25, width=130, selectmode=EXTENDED,\
+		self.listbox_dirs = Listbox(fm_listbox, height=10, width=10, selectmode=EXTENDED,\
 			exportselection=1,listvariable=self.list_v)
 		#2017.8.23 BUG: 滚动轴导致程序挂掉，原因可能是由于多线程子线程更新GUI界面
 		#产生内部错误导致
@@ -82,8 +81,8 @@ class DirList(object):
 		#self.listbox_dirs.bind('<3>', self.listbox_Rclick)
 		self.listbox_dirs['yscrollcommand'] = self.listbox_dirsby.set
 		self.listbox_dirsby.config(command=self.listbox_dirs.yview)
-		#self.listbox_dirs['xscrollcommand'] = self.listbox_dirsbx.set
-		#self.listbox_dirsbx.config(command=self.listbox_dirs.xview)
+		self.listbox_dirs['xscrollcommand'] = self.listbox_dirsbx.set
+		self.listbox_dirsbx.config(command=self.listbox_dirs.xview)
 		self.listbox_dirs.pack(expand=YES, fill=BOTH)
 		self.listbox_dirs.focus_set()
 		fm_listbox.pack(expand=YES,fill=BOTH)
@@ -118,6 +117,7 @@ class DirList(object):
 		self.v_files_types.set('.*\.txt;.*\.out')
 		self.entry_files_type = Entry(fm_search, width=30, textvariable=self.v_files_types)
 		self.entry_files_type.pack(side=LEFT)
+		self.entry_files_type.bind('<KeyPress-Escape>', self.get_default_files_filters)
 
 		fs = "Refer to Python Regular Expression\n '.*'means any characters\n use ';' to seperate"
 		tooltip.ToolTip(self.entry_files_type, msg=None, msgFunc=lambda : fs, follow=True, delay=0.2)
@@ -145,9 +145,8 @@ class DirList(object):
 		self.pro_fm.pack(side=LEFT)
 
 
-		#####sla core algorithm instant init##########
-		self.searcher = sla.auto_searcher(self.keyword.get(),os.getcwd())
-		#####sla core algorithm instant init##########
+		self.current_path_item_number = 0
+		self.current_path_item_selected_number = 0
 
 		############# menu init ################################
 		menubar = Menu(self.top)	
@@ -157,11 +156,11 @@ class DirList(object):
 
 		#filter_menu
 		self.search_filter = ['none']
-		filter_menu = Menu(menubar,tearoff = 1)
+		filter_menu = Menu(menubar,tearoff = 0)
 		#all the module used for filter keyword belonging to that module out
-		self.lf = list(set(zip(*self.searcher.l_keywords[1:])[1]))
+		#['Telecom', 'Platform', 'OAM'])
+		self.lf = list(set(zip(*PRE_KEYWORD_LIST)[1]))
 
-		check_var = StringVar()
 		self.d_filter = {}
 		for i in range(len(self.lf)):
 			self.d_filter[self.lf[i]] = StringVar()
@@ -219,7 +218,6 @@ class DirList(object):
 		if initdir:
 			#self.cwd.set(os.getcwd())
 			#desktop is default path
-			#print "DEBUG sla.desktop_path=",sla.desktop_path
 			self.cwd.set(DESKTOP_PATH)
 			self.menu_selectall()
 			self.doLS()
@@ -371,9 +369,10 @@ class DirList(object):
 		for fi,va in self.d_filter.items():
 			if va.get() == '1':
 				self.search_filter.append(fi)
-		s = "{0} items. keyword filters: {1}".format(self.searcher.total_work,self.search_filter)
-		self.ptext.set(s)
 
+		s = "{0} of {1} items selected. Keyword filters: {2}".\
+		format(self.current_path_item_selected_number, self.current_path_item_number,self.search_filter)
+		self.ptext.set(s)
 		self.keyword.set(PREDIFINED_KEYWORD)
 
 	def menu_selectall(self):
@@ -394,7 +393,7 @@ class DirList(object):
 				self.d_filter[self.lf[i]].set(True)
 				self.search_filter.append(self.lf[i])
 
-		s = "{0} items. Keyword filters: {1}".format(self.searcher.total_work,self.search_filter)
+		s = "{0} items. Keyword filters: {1}".format(self.current_path_item_number,self.search_filter)
 		self.ptext.set(s)
 		self.keyword.set(PREDIFINED_KEYWORD)
 		#print "filter:{0},value:{1}".format(self.lf[i],self.d_filter[self.lf[i]].get())
@@ -613,7 +612,6 @@ class DirList(object):
 
 		def drop(action, actions, type, win, X, Y, x, y, data):
 			self.listbox_dirs.delete(1, END)
-			self.searcher.file_list = []
 			os_sep = os.path.sep
 			print("data=",data)
 			refined_data = self.refine_data(data)
@@ -625,18 +623,14 @@ class DirList(object):
 					f = f[1:-1]
 				#deal with file_list '/' with os.sep
 				f = f.replace(r'/',os_sep)
-				#sla.get_file_list(f,self.searcher.file_list)
-				#print "DEBUG self.searcher.file_list=",self.searcher.file_list
 				widget.insert('end', f)
 				if os.path.isdir(f):
 					widget.itemconfig(END,fg = my_color_blue_office)
 				else:
 					pass
 
-			#self.searcher.total_work = len(self.searcher.file_list)
-			self.searcher.total_work = len(refined_data)
-
-			s = "{0} files dropped in".format(self.searcher.total_work)
+			self.current_path_item_number = len(refined_data)
+			s = "{0} files dropped in".format(self.current_path_item_number)
 			#print s
 			self.ptext.set(s)
 
@@ -661,12 +655,8 @@ class DirList(object):
 		return l
 ###############Drag and Drop feature:########################
 
-	def syn_dir(self, path):
-		self.searcher.path = path
-		#not recursion all the files
-		#self.searcher.file_list = sla.get_file_list(path,[])
-		self.searcher.file_list = os.listdir(path)
-		self.searcher.total_work = len(self.searcher.file_list)
+	def syn_item_number(self, path):
+		self.current_path_item_number = len(os.listdir(path))
 
 	def listbox_click(self,event):
 		print "listbox L click"
@@ -682,24 +672,18 @@ class DirList(object):
 		#this function triggered is behind of dirlist selection
 		#Thus, we can get the selections
 		sel = self.listbox_dirs.curselection()
+		print("DEBUG sel=",sel)
 		select_path_list = []
 		index_list = self.listbox_dirs.curselection()
 		for idx in index_list:
 			select_path_list.append(self.listbox_dirs.get(idx))
 
 		ln = len(select_path_list)
+		self.current_path_item_selected_number = ln
 		s = "{0} of {1} items selected. Keyword filters: {2}".\
-		format(ln, self.searcher.total_work,self.search_filter)
+		format(ln, self.current_path_item_number,self.search_filter)
 		self.ptext.set(s)
 
-		'''
-		file_list = []
-		for file_path in select_path_list:
-			file_list.extend(sla.get_file_list(file_path,[]))
-		print("DEBUG file_list=",file_list)
-		s_total = get_file_list_size(file_list)
-		print("DEBUG size total=",s_total)
-		'''
 	###########listbox_click_release()###########
 
 
@@ -715,6 +699,9 @@ class DirList(object):
 		#self.listbox_dirs.selection_clear(0,last_index)
 		self.listbox_dirs.selection_set(line_index,line_index)
 		self.listbox_dirs.config(selectbackground=my_color_blue)
+
+
+		self.current_path_item_selected_number = len(self.listbox_dirs.curselection())
 
 		#check untar possible:
 		index_list = self.listbox_dirs.curselection()
@@ -772,7 +759,6 @@ class DirList(object):
 		if "str" in str(type(path)):
 			path = path.decode('utf-8')
 		self.cwd.set(path)
-		#self.syn_dir(path)
 		self.doLS()
 
 	def doLS(self, ev=None):
@@ -812,8 +798,6 @@ class DirList(object):
 			if not (hasattr(self, 'last') and self.last):
 				self.last = os.curdir
 				self.cwd.set(self.last)
-				#self.syn_dir(self.last)
-				#self.listbox_dirs.config(selectbackground='LightSkyBlue')
 				self.listbox_dirs.config(selectbackground='Red')
 				self.top.update()
 				return
@@ -823,9 +807,9 @@ class DirList(object):
 			self.refresh_listbox(tdir)
 
 		self.cwd.set(os.getcwd())
-		self.syn_dir(os.getcwd())
+		self.syn_item_number(os.getcwd())
 
-		s = "{0} items. Keyword filters: {1}".format(self.searcher.total_work,self.search_filter)
+		s = "{0} items. Keyword filters: {1}".format(self.current_path_item_number,self.search_filter)
 		self.ptext.set(s)
 ###############doLS()##########################################
 
@@ -867,8 +851,9 @@ class DirList(object):
 
 	def get_default_keywords(self,ev=None):
 		self.keyword.set(PREDIFINED_KEYWORD)
-############get_default_keywords()###############
 
+	def get_default_files_filters(self,ev=None):
+		self.v_files_types.set('.*\.txt;.*\.out')
 
 	def start_thread_analyse(self,ev=None):
 		global l_threads
@@ -928,7 +913,7 @@ class DirList(object):
 		global l_threads
 		t = threading.Thread(target=self.progressbar)
 		l_threads.append(t)
-		print("DEBUG start progress bar thread=",t)
+		print("DEBUG start_thead_progressbar: thread=",t)
 		t.start()
 ##################start_thread_progressbar()##########
 
@@ -1126,48 +1111,6 @@ class DirList(object):
 
 ###############show_result#######################
 
-	def show_progress(self):
-
-		global l_threads
-
-		sla.progress_q.queue.clear()
-		tp = threading.Thread(target=self.progress)
-
-		l_threads.append(tp)
-		tp.start()
-		#t.join()
-
-	def progress(self):
-		n = 0
-		s = ""
-		#这里不知道为什么progress_q有东西拿不出来block住了
-		#所以用try直接忽略
-		s = "Start to analyse %d files"%(self.searcher.total_work)
-		#print s
-		self.ptext.set(s)
-		#self.pro_label.update()
-		
-		print "self.searcher.total_work=",self.searcher.total_work
-		print "n=",n
-		try:
-			while n < self.searcher.total_work:
-				#file = self.searcher.progress_q.get(True,3)
-				#file = self.searcher.progress_q.get()
-				file = sla.progress_q.get()
-				#print "get",file
-				n += 1
-				#Update the label
-				s = "Analysing: [%d/%d] %s"%(n,self.searcher.total_work,file)
-				self.ptext.set(s)
-				#self.pro_label.update()
-		except Exception as e:
-			sla.logger.warning(e)
-			#print e
-			s = "Analysing...progress label got some problem"
-			self.ptext.set(s)
-			print "DEBUG error progress label got problems,e=",e
-			#self.pro_label.update()
-################progress()#################################
 
 	def _async_raise(self,tid, exctype):
 		"""raises the exception, performs cleanup if needed"""
@@ -1217,8 +1160,6 @@ class DirList(object):
 				#print("thread:{} is still alive".format(thread_x))
 				alive_number += 1
 
-
-		sla.progress_q.queue.clear()
 		#list clear way:
 		l_threads[:] = []
 		s = "stopped"
@@ -1229,9 +1170,6 @@ class DirList(object):
 		if len(s_re) > 0:
 			filtered_keyword_list = self.filter_keyword()
 			self.show_result(PRE_KEYWORD_LIST, s_re, True)
-
-
-#################progress############################
 
 
 def upload_ck_list():
