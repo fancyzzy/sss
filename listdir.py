@@ -196,7 +196,7 @@ class DirList(object):
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Open folder',command=self.cm_folder_open)
 		self.popup_menu.add_separator()
-		self.popup_menu.add_command(label='Unpack',command=self.untar)
+		self.popup_menu.add_command(label='Unpack',command=self.cm_start_unpack)
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Search',command=self.cm_start_file_search)
 		self.popup_menu.add_separator()
@@ -463,7 +463,6 @@ class DirList(object):
 		print "my_decode called"
 		s = u"decoding is under process. please wait..."
 		self.ptext.set(s)
-		self.pro_label.update()
 
 		select_file_list = []
 		index_list = self.listbox_dirs.curselection()
@@ -492,7 +491,6 @@ class DirList(object):
 		'''
 		s = u"Counting log repetition is under process. please wait..."
 		self.ptext.set(s)
-		self.pro_label.update()
 
 		l_result = []
 
@@ -525,28 +523,41 @@ class DirList(object):
 			self.listbox_dirs.insert(END,s)
 			self.listbox_dirs.itemconfig(END,fg=my_color_blue)
 
-	def untar(self):
-		#showinfo(title='Untar', message="To be done soon...")
-		path_list = []
-		
+
+	def cm_start_unpack(self,ev=None):
+		print("DEBUG cm_start_unpack")
+
+		select_path_list = []
 		index_list = self.listbox_dirs.curselection()
 		for idx in index_list:
-			path_list.append(self.listbox_dirs.get(idx))
+			select_path_list.append(self.listbox_dirs.get(idx))
 
+		if len(select_path_list) > 0:
+			t = threading.Thread(target=self.unpack, args=(select_path_list,))
+			#for terminating purpose
+			l_threads.append(t)
+			t.start()	
+			self.start_thread_progressbar()
+		else:
+			print("DEBUG no select")
+			pass
 
+	def unpack(self,path_list):
+		#showinfo(title='Untar', message="To be done soon...")
 		s = u"{0} is under untar process. please wait...".format(path_list)
-		self.ptext.set(s)
-		self.pro_label.update()
-		sleep(0.1)
+		multi_operates.PROGRESS_QUE.put(s)
 		
 		multi_operates.files_unpack(path_list)
 
-		s = "untar finished, time used:{0}".format(multi_operates.used_time())
-		self.ptext.set(s)
+		tip = 'All done, unpack finished, time uese:{0}'.format(multi_operates.used_time())
+		multi_operates.PROGRESS_QUE.put(tip)
 
 		new_path = os.path.dirname(path_list[-1])
 		self.refresh_listbox(new_path)
-		showinfo(title='Untar', message="Untar Finished!")
+
+
+		self.label_title.bell()
+		print("DEBUG unpack finished")
 	#############context menu function#############################
 
 	###############Drag and Drop feature:########################
@@ -728,7 +739,6 @@ class DirList(object):
 		self.listbox_dirs.config(selectbackground='LightSkyBlue')
 		#self.listbox_dirs.config(selectbackground=my_color_blue)
 		path = self.listbox_dirs.get(self.listbox_dirs.curselection())
-		print("DEBUG path=",path)
 		if not path:
 			check = os.curdir
 			print "DEBUG setDirAnd Go path error"
