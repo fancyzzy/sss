@@ -192,13 +192,13 @@ class DirList(object):
 
 		##popup menu
 		self.popup_menu = Menu(self.top, tearoff = 0)
-		#self.popup_menu.add_command(label='Open',command=self.setDirAndGo)
-		#multi open
-		self.popup_menu.add_command(label='Open folder',command=self.folder_open)
+		self.popup_menu.add_command(label='Open',command=self.cm_file_open)
+		self.popup_menu.add_separator()
+		self.popup_menu.add_command(label='Open folder',command=self.cm_folder_open)
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Unpack',command=self.untar)
 		self.popup_menu.add_separator()
-		self.popup_menu.add_command(label='Search',command=self.start_file_search)
+		self.popup_menu.add_command(label='Search',command=self.cm_start_file_search)
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Decode',command=self.my_decode)
 		self.popup_menu.add_separator()
@@ -416,9 +416,30 @@ class DirList(object):
 			#self.listbox_dirs.config(selectbackground=my_color_blue)
 			#m.post(event.x_root,event.y_root)
 
-	def folder_open(self,ev=None):
+
+	def cm_file_open(self,ev=None):
 		#print "DEBUG print list_var=",self.list_v.get()
-		print "folder_open called"
+		print "cm_file_open called"
+
+		select_file_list = []
+		index_list = self.listbox_dirs.curselection()
+		for idx in index_list:
+			select_file_list.append(self.listbox_dirs.get(idx))
+
+		print(select_file_list)
+		for file in select_file_list:
+			file = file.encode('gb2312')
+			cmd = [file]
+			try:
+				multi_operates.call_proc(cmd)
+			except Exception as e:
+				print "DEBUG call_proc error=",e
+				self.listbox_dirs.config(selectbackground='red')
+	##############################
+
+	def cm_folder_open(self,ev=None):
+		#print "DEBUG print list_var=",self.list_v.get()
+		print "cm_folder_open called"
 
 		select_file_list = []
 		index_list = self.listbox_dirs.curselection()
@@ -707,6 +728,7 @@ class DirList(object):
 		self.listbox_dirs.config(selectbackground='LightSkyBlue')
 		#self.listbox_dirs.config(selectbackground=my_color_blue)
 		path = self.listbox_dirs.get(self.listbox_dirs.curselection())
+		print("DEBUG path=",path)
 		if not path:
 			check = os.curdir
 			print "DEBUG setDirAnd Go path error"
@@ -912,7 +934,7 @@ class DirList(object):
 
 
 	#开启一个线程进行搜索关键字，防止主线程被挂起
-	def start_file_search(self,ev=None):
+	def cm_start_file_search(self,ev=None):
 		global l_threads
 
 		print "Start_file_search"
