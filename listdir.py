@@ -202,7 +202,7 @@ class DirList(object):
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Decode',command=self.cm_start_bsc_decode)
 		self.popup_menu.add_separator()
-		self.popup_menu.add_command(label='Repetion',command=self.my_repeat)
+		self.popup_menu.add_command(label='Repetion',command=self.cm_start_logline_count)
 		#popup_menu.entryconfig("Open", state="disable")
 		############# menu init ################################
 
@@ -266,7 +266,6 @@ class DirList(object):
 					self.ptext.set(s)
 					print("DEBUG wating to get file_path from FTP QUEUE..")
 					file_path = my_ftp.FTP_FILE_QUE.get()
-					print("DEBUG get! file_path = ",file_path)
 					#exit this circle
 					if 'ftp quit' in file_path:
 						break
@@ -300,7 +299,7 @@ class DirList(object):
 				else:
 					pass
 
-		print("DEBUG monitor_Ftp_download quit")
+		print("'mail monitor quit'")
 		s = "Detecting stopped"
 		self.ptext.set(s)
 		return
@@ -495,43 +494,74 @@ class DirList(object):
 		print("DEBUG decode finished")
 
 
-	def my_repeat(self, ev=None):
+	def cm_start_logline_count(self,ev=None):
+
+		print("DEBUG cm_start_logline_count")
+		select_path_list = []
+		index_list = self.listbox_dirs.curselection()
+		for idx in index_list:
+			select_path_list.append(self.listbox_dirs.get(idx))
+
+		if len(select_path_list) > 0:
+			top_rank = 10
+			t = threading.Thread(target=self.lines_count, args=(select_path_list, top_rank))
+			#for terminating purpose
+			l_threads.append(t)
+			print("DEBUG start repeat thread", t)
+			t.start()	
+
+			self.start_thread_progressbar()
+		else:
+			print("DEBUG no select")
+			pass
+
+	def lines_count(self, path_list, top_rank):
 		'''
 		counting the repeated log occurences
 		'''
-		s = u"Counting log repetition is under process. please wait..."
-		self.ptext.set(s)
 
-		l_result = []
+		s = "Please wait..."	
+		self.search_b.config(text=s,bg='orange',relief='sunken',state='disabled')
+		self.popup_menu.entryconfig("Search", state="disable")
 
-		select_file_list = []
-		index_list = self.listbox_dirs.curselection()
-		for idx in index_list:
-			select_file_list.append(self.listbox_dirs.get(idx))
+		#use multi_operates:
+		multi_operates.PROGRESS_QUE.put("Counting start")
+		files_types_list = self.v_files_types.get().strip().split(';')
+		l_result,counted_number = \
+		multi_operates.files_lines_count(path_list, top_rank, files_types_list)
 
-		top_rank = 5
-		l_result = repeat_log.repeat_log_rank(select_file_list, top_rank)
+		multi_operates.PROGRESS_QUE.put("Counting finished, generating results...")
 
-		ds = ''
-		if sla.interval > 1000:
-			duration = sla.interval/60.0
-			ds = "%.1f minutes"%(duration)
-		else:
-			duration = sla.interval * 1.0
-			ds = "%.1f seconds"%(duration)
-		print "Finished, time used:",ds
-		s = "Repetition statistic finished, time used:{0}".format(ds)
-		self.ptext.set(s)
-
+		#self.show_result(keyword_list, search_result)
 		self.listbox_dirs.delete(0, END)
 		self.listbox_dirs.insert(END, os.curdir)
-		s = u"-----------Log Repetition Top %d--------------------"%(top_rank)
+		s = u"-----------Counting Lines Repetition Top %d Results--------------------"%(top_rank)
 		self.listbox_dirs.insert(END,s)
-		#self.show_result(l_result,{})
+		j = 0
 		for item in l_result:
-			s = "repeated:[{0} times]: {1}".format(item[1],item[0])
+			j += 1
+			sitem = ''
+			#if 'str' in str(type(item[0])):
+			#	sitem = item[0].encode('gb2312')
+			s = "No.{0} repeated:[{1} times]: {2}".format(str(j),item[1],item[0])
+			try:
+				s = s.decode('gb2312')
+			except Exception as e:
+				print("error decode e:",e)
 			self.listbox_dirs.insert(END,s)
 			self.listbox_dirs.itemconfig(END,fg=my_color_blue)
+
+
+		s = 'All done, counting finished, %d files, counted in %s'\
+		 %(counted_number, multi_operates.used_time())
+		multi_operates.PROGRESS_QUE.put(s)
+
+		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
+		self.popup_menu.entryconfig("Search", state="normal")
+		self.label_title.bell()
+		print "lines count finished"
+
+
 
 
 	def cm_start_unpack(self,ev=None):
@@ -585,6 +615,7 @@ class DirList(object):
 			self.listbox_dirs.delete(1, END)
 			self.searcher.file_list = []
 			os_sep = os.path.sep
+			print("data=",data)
 			refined_data = self.refine_data(data)
 			#for f in refine_data(data):
 			for f in refined_data:
@@ -594,7 +625,7 @@ class DirList(object):
 					f = f[1:-1]
 				#deal with file_list '/' with os.sep
 				f = f.replace(r'/',os_sep)
-				sla.get_file_list(f,self.searcher.file_list)
+				#sla.get_file_list(f,self.searcher.file_list)
 				#print "DEBUG self.searcher.file_list=",self.searcher.file_list
 				widget.insert('end', f)
 				if os.path.isdir(f):
@@ -605,23 +636,7 @@ class DirList(object):
 			#self.searcher.total_work = len(self.searcher.file_list)
 			self.searcher.total_work = len(refined_data)
 
-			#counting the total size of file_list:
-			size_total = 0
-			for i in xrange(len(self.searcher.file_list)):
-				p = self.searcher.file_list[i]
-				size_total = size_total + os.path.getsize(p)
-
-			s = ''
-			if size_total > 1024000000:
-				s = "%.2f Gb"%(size_total/((1024*1024*1024)*1.0))
-			elif size_total > 10240000:
-				s = "%.1f Mb"%(size_total/(1024.0*1024))
-			elif size_total > 10240:
-				s = "%d Kb"%(size_total/1024.0)
-			else:
-				s = "%d bytes"%(size_total)
-
-			s = "{0} files {1} dropped in".format(self.searcher.total_work,s)
+			s = "{0} files dropped in".format(self.searcher.total_work)
 			#print s
 			self.ptext.set(s)
 
@@ -913,6 +928,7 @@ class DirList(object):
 		global l_threads
 		t = threading.Thread(target=self.progressbar)
 		l_threads.append(t)
+		print("DEBUG start progress bar thread=",t)
 		t.start()
 ##################start_thread_progressbar()##########
 
@@ -929,6 +945,8 @@ class DirList(object):
 		pq = multi_operates.PROGRESS_QUE
 		
 		while 1:
+			#print("all thread state:", l_threads)
+			#sleep(1)
 			alive_number = 0
 			for thread_x in l_threads:
 				if thread_x.is_alive():
@@ -1051,7 +1069,7 @@ class DirList(object):
 				j = j+1
 				#s = self.searcher.l_keywords[i][0]
 				#self.listbox_dirs.insert(END,s)
-				s =u"[{0}.keyword]:{1}".format(i,lk[0])
+				s =u"{0}".format(lk[0])
 				self.listbox_dirs.insert(END,s)
 				srl.append(s)
 				self.listbox_dirs.itemconfig(END,fg=my_color_blue)
@@ -1172,7 +1190,7 @@ class DirList(object):
 		'''
 		global l_threads
 		global PRE_KEYWORD_LIST
-		#print "DEBUG id(l_threads)= {}, l_threads= {}".format(id(l_threads),l_threads)
+		#print("DEBUG teminate thread list:",l_threads)
 
 		alive_number = 0
 		for thread_x in l_threads:
@@ -1252,6 +1270,14 @@ def ask_quit(my_widget):
 		my_widget.top.destroy()
 	else:
 		my_widget.top.quit()
+
+	#check if threads is stopped
+	l_threads.extend(my_ftp.MONITOR_THREADS)
+	l_threads.extend(my_ftp.DIRECT_DOWNLOAD_THREADS)
+	l_threads.extend(my_ftp.PROGRESS_THREADS)
+	for thread_x in l_threads:
+		if thread_x.is_alive():
+			print("WARNING, thread:{} is still alive".format(thread_x))
 	print("'SLA quit.'")
 
 

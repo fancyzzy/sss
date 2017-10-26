@@ -1,12 +1,44 @@
 import re
 import sla_multi_threads as sla
 
-@sla.time_interval
-#This function is to get the top repeat logs
-def repeat_log_rank(path_list, top_rank = 5):
+
+def single_file_line_count(file, d_result):
+	with open(file, "r") as fobj:
+		file_line_nbr = 0
+		while True:
+			buff = fobj.readline()
+			file_line_nbr += 1
+			#if buff == "" or buff == '\r\n':
+			if buff == "":
+				#print "broke!"
+				break
+			else:
+				# Remove the part before the file name (first word)
+				#Get the second part in the line which will be the log time in general, 
+				#and judge whether it is the tim
+				if len(buff.split(" ")) > 1:
+					log_time = buff.split(" ")[1]
+					if re.search(r'\b\d\d:\d\d:\d\d\b',log_time):
+						tmp = re.findall(r'\b[a-zA-Z]',buff)[0]
+						remove = buff.split(tmp)[0]
+						remove_byte = len(remove)
+						real_line = buff[remove_byte:].rstrip('\n')
+						if d_result.has_key(real_line):
+							d_result[real_line] += 1
+						else:
+							d_result[real_line] = 1
+				else:
+					#for windows \r\n when read mode is 'rb':
+					real_line = buff.rstrip('\n')
+					if d_result.has_key(real_line):
+						d_result[real_line] += 1
+					else:
+						d_result[real_line] = 1	
 
 
-	print "repeat_log_rank start, path_list=",path_list
+def files_lines_count(path_list, top_rank = 5):
+
+	#print "files_lines_count start, path_list=",path_list
 	d_result = {}
 	all_file_list = []
 	for pa in path_list:
@@ -15,6 +47,8 @@ def repeat_log_rank(path_list, top_rank = 5):
 	file_line_nbr = 0
 	for file in all_file_list:
 		try:
+			single_file_line_count(file, d_result)
+			'''
 			with open(file, "rb") as fobj:
 				file_line_nbr = 0
 				while True:
@@ -46,6 +80,7 @@ def repeat_log_rank(path_list, top_rank = 5):
 								d_result[real_line] += 1
 							else:
 								d_result[real_line] = 1
+			'''
 		
 		except Exception as e:
 			#logger.error(e)
@@ -66,15 +101,10 @@ if __name__ == '__main__':
 	#file_list = [r"D:/Trace/realtime/test.txt"]
 
 	top_rank = 5
-	result = repeat_log_rank(file_list, top_rank)	
+	result = files_lines_count(file_list, top_rank)	
 	print("Top repeat log rank: ")
 	for r in result:
 		print r
 
-	if sla.interval > 1000:
-		duration = sla.interval/60.0
-		ds = "%.1f minutes"%(duration)
-	else:
-		duration = sla.interval * 1.0
-		ds = "%.1f seconds"%(duration)
-	print "Finished, time used:",ds
+
+	print "Finished"

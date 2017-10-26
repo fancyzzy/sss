@@ -2,8 +2,9 @@
 #-*-coding=utf-8-*-
 
 import copy
-import untar_function
+import my_unpacker
 import my_decoder
+import my_lines_counter
 import sla_multi_threads as sla
 import os
 import re
@@ -51,7 +52,7 @@ def single_file_unpack(file_name, f_delete = False):
 	'''
 	new_file = "new_file name"
 	res = (None,new_file)
-	res = untar_function.untar_file(file_name, f_delete)	
+	res = my_unpacker.untar_file(file_name, f_delete)	
 	return res
 ########single_file_unpack()#####################
 
@@ -64,12 +65,12 @@ def unpack_item(itemname, delet_fi=False):
 	s = (None, "")
 	pack_name = ('','')
 	if os.path.isfile(itemname):
-		pack_name = untar_function.detect_pack(itemname)
+		pack_name = my_unpacker.detect_pack(itemname)
 		if pack_name[0]:
 			#progress tip put(pack_name[1])
 			tip = "Unpacking: {0}".format(itemname)
 			PROGRESS_QUE.put(tip)
-			s = untar_function.untar_file(pack_name[0],itemname, delet_fi)
+			s = my_unpacker.untar_file(pack_name[0],itemname, delet_fi)
 			if s[0]:
 				return s
 			new_file = s[1]
@@ -103,14 +104,14 @@ def files_unpack(path_list):
 		PROGRESS_QUE.put(tip)
 
 		#display porgress tip for each unpacked file
-		#errors = untar_function.untar_function(path_list[i])[0]
+		#errors = my_unpacker.my_unpacker(path_list[i])[0]
 		errors = unpack_item(path_list[i])[0]
 		if errors:
 			print "DEBUG unpack error = ",errors
 			break
 		#check if this is unpack available file,
 		#if it is, update the new folder into new_path_list
-		for sufx in untar_function.unpack_list:
+		for sufx in my_unpacker.unpack_list:
 			if path_list[i].endswith(sufx):
 				new_path_list[i] = path_list[i].rstrip(sufx)
 				break
@@ -298,6 +299,72 @@ def do_operates(path_list, keyword_list, files_types_list=None):
 
 
 	return search_result,searched_number
+
+@sla.time_interval
+def files_lines_count(path_list, top_rank = 10, files_types_list=None):
+
+	count_result = {}
+	counted_file_number = 0
+
+	file_list = []
+	original_file_list = []
+	for path in path_list:
+		original_file_list.extend(sla.get_file_list(path,[]))
+
+
+	#filter file_list:
+	#1. only left according to files_types
+	print("  files_lines_count, 1.fitler out, files_types=",files_types_list)
+	if files_types_list:
+
+		re_f = ''
+		for i in range(len(files_types_list)):
+			files_types_list[i] = '(' + files_types_list[i] + ')'
+		re_f = '|'.join(files_types_list)
+		# re_filters = r'(.*\.txt)|(.*\.out)'
+
+		#print("DEBUG re_filter=",re_f)
+		re_filter = re.compile(re_f)
+		for file in original_file_list:
+			if re_filter.search(file):
+				file_list.append(file)
+			else:
+				#file not in the filter_types
+				pass
+
+	print('  files_lines_count, 2.counting start')
+
+	#2. filter out those not necessary searched files
+	not_search_sufx_list = [r".rtrc", r".rtrc_backup"]
+	ln = len(not_search_sufx_list)
+
+	for i in range(ln):
+		not_search_sufx_list[i] = "({0})$".format(not_search_sufx_list[i])
+
+	re_rule = "|".join(not_search_sufx_list)
+	re_not_sufx_list = re.compile(re_rule)
+	#filter out those not necessary searched files
+
+	ln_files = len(file_list)
+
+	for i in range(ln_files):
+		if not re_not_sufx_list.search(file_list[i]):
+			s = file_list[i]
+			if 'unicode' in str(type(s)):
+				s = s.encode('gb2312')
+			tip = "Counting Repetition[{0}/{1}]{2}".format(i+1,ln_files,s)
+			PROGRESS_QUE.put(tip)
+			try:
+				my_lines_counter.single_file_line_count(file_list[i], count_result)
+				counted_file_number += 1
+
+			except Exception as e:
+				print ("DEBUG: Here: ", e)
+
+	l_result = sorted(count_result.iteritems(), key=lambda d:d[1], reverse = True)
+	return l_result[:top_rank],counted_file_number
+####################files_lines_count()########################
+	
 ##############multi_operates############################
 
 
