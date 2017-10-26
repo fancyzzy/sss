@@ -3,7 +3,7 @@ import sys
 import os
 import gzip
 import re
-import sla_multi_threads as sla
+from my_resources import time_interval
 
 TARGZ = '.tar.gz'
 TGZ = '.tgz'
@@ -11,8 +11,6 @@ TAR = '.tar'
 GZ = '.gz'
 
 unpack_list = ['.tar.gz','.gz','.tar','.tgz']
-
-#@sla.time_interval
 
 def detect_pack(file_name):
 	'''
@@ -111,7 +109,7 @@ def untar_file(pack_category, file_name, delet_cpfi=False):
 	return S,new_file
 #################untar_file()#############
 
-@sla.time_interval
+@time_interval
 def untar_function(filename, delet_fi=False):
 	s = (None, "")
 	pack_name = ('','')
@@ -147,11 +145,3 @@ if __name__ == '__main__':
 	for file in file_list:
 		s = untar_function(file, delet_fi)
 	print "DEBUG result s=",s
-		
-	if sla.interval > 1000:
-		duration = sla.interval/60.0
-		ds = "%.1f minutes"%(duration)
-	else:
-		duration = sla.interval * 1.0
-		ds = "%.1f seconds"%(duration)
-	print "Finished, time used:",ds

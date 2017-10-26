@@ -21,7 +21,6 @@ import RTTP_decoder
 from  my_resources import *
 import my_decoder
 import re
-import repeat_log
 import multi_operates
 import time
 import my_ftp
@@ -50,7 +49,7 @@ class DirList(object):
 		self.entry_label = Label(fm_directory, text="Search in: ")
 		self.cwd = StringVar(self.top)
 		self.entry_dir = Entry(fm_directory, width=80, textvariable=self.cwd)
-		self.entry_dir.bind('<Return>', self.doLS)
+		self.entry_dir.bind('<Return>', self.enter_directory)
 		self.button_dir = Button(fm_directory, text='List directory', \
 			command=self.open_dir, activeforeground='white', activebackground='orange')
 		self.button_dir.pack(side=RIGHT)
@@ -220,7 +219,7 @@ class DirList(object):
 			#desktop is default path
 			self.cwd.set(DESKTOP_PATH)
 			self.menu_selectall()
-			self.doLS()
+			self.enter_directory()
 
 		self.dnd_enable(self.listbox_dirs)
 
@@ -664,15 +663,13 @@ class DirList(object):
 		#this function is ahead of dirlist selection
 		#so can't get the selection from this function
 		#use click release function
-		#sel = self.listbox_dirs.curselection()
-		#print("DEBUG sel=",sel)
+
 
 	def listbox_click_release(self, event):
 		print("click release")
 		#this function triggered is behind of dirlist selection
 		#Thus, we can get the selections
 		sel = self.listbox_dirs.curselection()
-		print("DEBUG sel=",sel)
 		select_path_list = []
 		index_list = self.listbox_dirs.curselection()
 		for idx in index_list:
@@ -740,7 +737,7 @@ class DirList(object):
 
 		print(p)
 		self.cwd.set(p)
-		self.doLS()
+		self.enter_directory()
 	######open_dir()##############
 
 
@@ -759,12 +756,12 @@ class DirList(object):
 		if "str" in str(type(path)):
 			path = path.decode('utf-8')
 		self.cwd.set(path)
-		self.doLS()
+		self.enter_directory()
 
-	def doLS(self, ev=None):
+	def enter_directory(self, ev=None):
 		global FTP_TOP
 		#print "DEBUG print list_var=",self.list_v.get()
-		print "doLS called"
+		print "enter_directory"
 		error = ''
 		tdir = self.cwd.get()
 		if not tdir:
@@ -811,7 +808,7 @@ class DirList(object):
 
 		s = "{0} items. Keyword filters: {1}".format(self.current_path_item_number,self.search_filter)
 		self.ptext.set(s)
-###############doLS()##########################################
+###############enter_directory()##########################################
 
 	def refresh_listbox(self, dir_path):
 
@@ -1164,7 +1161,7 @@ class DirList(object):
 		l_threads[:] = []
 		s = "stopped"
 		self.ptext.set(s)
-		#self.doLS()
+		#self.enter_directory()
 		#if partial search_results have some results, printed out
 		s_re = multi_operates.search_result
 		if len(s_re) > 0:

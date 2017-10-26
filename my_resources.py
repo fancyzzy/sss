@@ -5,6 +5,63 @@ import os
 import sys
 import csv
 
+from platform import system
+opr = system()
+print("'{} system'".format(opr))
+interval = 0
+
+########################globals##################
+def time_interval(func):
+	def _deco(*args, **kwargs):
+		global interval
+		if opr.lower() == 'windows':
+			start = time.clock()
+		else:
+			start = time.time()
+		ret = func(*args, **kwargs)
+		if opr.lower() == 'windows':
+			end = time.clock()
+		else:
+			end = time.time()
+
+		interval = end - start
+		#print "function %s total time used:%3f seconds"\
+		#%(func.__name__, interval/1.000)
+
+		return ret
+	return _deco
+
+
+
+def get_file_list(dir,file_list):
+	'''
+	获取目录dir下的所有文件名(文件路径)
+	略过隐藏的特殊文件
+	支持子目录
+	'''
+	try:
+		new_dir = dir
+		if os.path.isfile(dir):
+			file_list.append(dir)
+		elif os.path.isdir(dir):
+			for s in os.listdir(dir):
+				#略过特殊字符开头的文件或者文件夹
+				if not s[0].isdigit() and not s[0].isalpha():
+					logger.warning("Hidden file:%s"%(s))
+					#logger.warning("Hidden file:{}".format(s))
+					if s != '.':
+						continue
+				new_dir = os.path.join(dir,s)
+				get_file_list(new_dir,file_list)
+		else:
+			pass
+	except Exception as e:
+		logger.warning(e)
+	return file_list
+################get_file_list####################
+
+
+
 '''
 This is all the resources location
 '''
@@ -148,5 +205,5 @@ def resource_path(relative_path):
 
 if __name__ == '__main__':
 	
-	print "Resources"
+	print "this is Resources"
 	#print "DEBUG keywords=",keyword_list

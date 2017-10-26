@@ -5,7 +5,7 @@ import copy
 import my_unpacker
 import my_decoder
 import my_lines_counter
-import sla_multi_threads as sla
+import my_resources
 import os
 import re
 import Queue
@@ -33,13 +33,14 @@ def call_proc(cmd):
 
 def used_time():
 
+	ivl = my_resources.interval
 	duration = 0
 	ds = ''
-	if sla.interval > 1000:
-		duration = sla.interval/60.0
+	if ivl > 1000:
+		duration = ivl/60.0
 		ds = "%.1f minutes"%(duration)
 	else:
-		duration = sla.interval * 1.0
+		duration = ivl * 1.0
 		ds = "%.1f seconds"%(duration)
 	return ds
 ##############used_time()############################
@@ -58,7 +59,7 @@ def single_file_unpack(file_name, f_delete = False):
 
 
 #display porgress tip for each unpacked file
-@sla.time_interval
+@my_resources.time_interval
 def unpack_item(itemname, delet_fi=False):
 	global PROGRESS_QUE	
 
@@ -86,7 +87,7 @@ def unpack_item(itemname, delet_fi=False):
 	return s
 
 
-@sla.time_interval
+@my_resources.time_interval
 def files_unpack(path_list):
 	global PROGRESS_QUE
 
@@ -122,12 +123,12 @@ def files_unpack(path_list):
 def single_file_decode(file_name):
 	my_decoder.decode_one_file(file_name)
 
-@sla.time_interval
+@my_resources.time_interval
 def files_decode(path_list):
 
 	file_list = []
 	for path in path_list:
-		file_list.extend(sla.get_file_list(path,[]))
+		file_list.extend(my_resources.get_file_list(path,[]))
 
 	print('  decode start')
 
@@ -200,7 +201,7 @@ def single_file_search(file_name, keyword_list):
 #################single_file_search########################
 
 
-@sla.time_interval
+@my_resources.time_interval
 def files_search(path_list, keyword_list, files_types_list=None, start_stop = None):
 	#global progress_q
 	global search_result
@@ -211,7 +212,7 @@ def files_search(path_list, keyword_list, files_types_list=None, start_stop = No
 	file_list = []
 	original_file_list = []
 	for path in path_list:
-		original_file_list.extend(sla.get_file_list(path,[]))
+		original_file_list.extend(my_resources.get_file_list(path,[]))
 
 
 	#filter file_list:
@@ -270,7 +271,7 @@ def files_search(path_list, keyword_list, files_types_list=None, start_stop = No
 	return search_result,searched_file_number
 ###############files_search#################################
 
-@sla.time_interval
+@my_resources.time_interval
 def do_operates(path_list, keyword_list, files_types_list=None):
 	global search_result
 	global PROGRESS_QUE
@@ -282,25 +283,25 @@ def do_operates(path_list, keyword_list, files_types_list=None):
 	new_path_list = files_unpack(path_list)
 	PROGRESS_QUE.put("Unpack finished, time used = %s"%(used_time()))
 
-	tmp = sla.interval
+	tmp = my_resources.interval
 	#2. decode
 	PROGRESS_QUE.put("Decode start")
 	files_decode(new_path_list)
 	PROGRESS_QUE.put("Decode finished, time used = %s"%(used_time()))
 
-	tmp = tmp + sla.interval
+	tmp = tmp + my_resources.interval
 	#3. search
 	PROGRESS_QUE.put("Search start")
 	search_result,searched_number = files_search(new_path_list, keyword_list, files_types_list)
 	PROGRESS_QUE.put("Search finished, time used = %s"%(used_time()))
 
-	tmp = tmp + sla.interval
-	sla.interval = tmp
+	tmp = tmp + my_resources.interval
+	my_resources.interval = tmp
 
 
 	return search_result,searched_number
 
-@sla.time_interval
+@my_resources.time_interval
 def files_lines_count(path_list, top_rank = 10, files_types_list=None):
 
 	count_result = {}
@@ -309,7 +310,7 @@ def files_lines_count(path_list, top_rank = 10, files_types_list=None):
 	file_list = []
 	original_file_list = []
 	for path in path_list:
-		original_file_list.extend(sla.get_file_list(path,[]))
+		original_file_list.extend(my_resources.get_file_list(path,[]))
 
 
 	#filter file_list:
