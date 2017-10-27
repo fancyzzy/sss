@@ -34,14 +34,15 @@ NO_KEYWORD_FIND = True
 class DirList(object):
 	def __init__(self, initdir=None):
 		self.top = Tk()
-		self.top.geometry('750x460+340+180')
+		self.top.geometry('850x560+200+180')
 		self.top.wm_title("SLA2.4")
 
 		#Label(self.top, text='').pack()
-
-		self.label_title = Label(self.top, text='Site Log Analyzer v2.4',\
+		fm_title = Frame(self.top)
+		self.label_title = Label(fm_title, text='Site Log Analyzer v2.4',\
 			font = ('Helvetica', 16, 'bold'), fg= my_color_blue_office)
 		self.label_title.pack()
+		fm_title.pack()
 
 		self.top.iconbitmap(icon_path)
 
