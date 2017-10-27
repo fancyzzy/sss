@@ -47,7 +47,7 @@ def get_file_list(dir,file_list):
 			for s in os.listdir(dir):
 				#略过特殊字符开头的文件或者文件夹
 				if not s[0].isdigit() and not s[0].isalpha():
-					logger.warning("Hidden file:%s"%(s))
+					#logger.warning("Hidden file:%s"%(s))
 					#logger.warning("Hidden file:{}".format(s))
 					if s != '.':
 						continue
@@ -56,7 +56,8 @@ def get_file_list(dir,file_list):
 		else:
 			pass
 	except Exception as e:
-		logger.warning(e)
+		#logger.warning(e)
+		print("warning,e:",e)
 	return file_list
 ################get_file_list####################
 

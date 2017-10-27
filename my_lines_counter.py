@@ -12,7 +12,7 @@ def get_file_list(dir,file_list):
 		elif os.path.isdir(dir):
 			for s in os.listdir(dir):
 				if not s[0].isdigit() and not s[0].isalpha():
-					logger.warning("Hidden file:%s"%(s))
+					#logger.warning("Hidden file:%s"%(s))
 					if s != '.':
 						continue
 				new_dir = os.path.join(dir,s)
