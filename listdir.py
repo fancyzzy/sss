@@ -1163,16 +1163,22 @@ def ask_quit(my_widget):
 
 
 def main():
-	
 	cstart = time.clock()
 	d = DirList(os.getcwd())
 	#ask to quit
 	d.top.protocol("WM_DELETE_WINDOW",lambda :ask_quit(d))
-
 	cend = time.clock()
 	print("'Startup time costs: %.2f seconds.'"%(cend-cstart))
 	d.top.mainloop()
 
 
 if __name__ == '__main__':
-	main()		
+	import sys
+	try:
+		main()		
+	except Exception as e:
+		showerror(title='Error', message="Error occured!\n %s \n sla.corefile saved"%e)
+		with open(os.path.join(WORKING_PATH,'sal.corefile'), 'a') as fobj:
+			stime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+			fobj.write('Core dump happened at %s\n'%stime)
+			fobj.write('blackbox info: %s\n\n'%e)
