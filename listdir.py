@@ -28,6 +28,7 @@ import tooltip
 import tkFileDialog
 
 FTP_TOP = None
+MONITOR_STOP_FLAG = 'ftp quit'
 SEARCH_RESULT_LIST = []
 NO_KEYWORD_FIND = True
 
@@ -309,6 +310,7 @@ class DirList(object):
 			t = threading.Thread(target=self.monitor_ftp_download, args=(ftp_top,))
 			l_threads.append(t)
 			t.start()	
+			print("monitor ftp thread:",t)
 		else:
 			print("DEBUG FTP_TOP none error")
 	##########menu_start_monitor_ftp_download()#############
@@ -1080,7 +1082,7 @@ class DirList(object):
 				#print("thread:{} is still alive".format(thread_x))
 				alive_number += 1
 		#print("THere are still %d theads alive" % alive_number)
-		if not alive_number:
+		if alive_number == 0:
 			#print("DEBUG no alive threads, return")
 			l_threads[:] = []
 			return
@@ -1089,15 +1091,10 @@ class DirList(object):
 			for t in l_threads:
 				if t.is_alive():
 					self._async_raise(t.ident, SystemExit)
+					t._Thread__stop()
 
 		self.search_b.config(text="Auto analyse",bg='white',relief='raised',state='normal')
 		self.popup_menu.entryconfig("Search", state="normal")
-
-		alive_number = 0
-		for thread_x in l_threads:
-			if thread_x.is_alive():
-				#print("thread:{} is still alive".format(thread_x))
-				alive_number += 1
 
 		#list clear way:
 		l_threads[:] = []
@@ -1140,14 +1137,24 @@ def ask_quit(my_widget):
 		upload_ck_list()
 	#End: irone add
 	my_widget.terminate_threads()
-	#close ftp module threads
-	my_ftp.terminate_threads(my_ftp.MONITOR_THREADS)
-	my_ftp.terminate_threads(my_ftp.DIRECT_DOWNLOAD_THREADS)
-	my_ftp.terminate_threads(my_ftp.PROGRESS_THREADS)
+
 	if FTP_TOP:
 		#close ftp first if it is running
 		#and then must use destroy to close
+
+		FTP_TOP.running = False
+		#for stop monitor thread which needs this flag
+		my_ftp.FTP_FILE_QUE.put('ftp quit')
 		FTP_TOP.ftp_top.destroy()
+
+		#close ftp module threads
+		#if shutdown sla while not close ftp elegantly, 
+		#here need to stop ftp's every thread
+		#cause the ftp askquit function would not be called
+		my_ftp.terminate_threads(my_ftp.MONITOR_THREADS)
+		my_ftp.terminate_threads(my_ftp.DIRECT_DOWNLOAD_THREADS)
+		my_ftp.terminate_threads(my_ftp.PROGRESS_THREADS)
+
 		my_widget.top.destroy()
 	else:
 		my_widget.top.quit()
@@ -1159,7 +1166,9 @@ def ask_quit(my_widget):
 	for thread_x in l_threads:
 		if thread_x.is_alive():
 			print("WARNING, thread:{} is still alive".format(thread_x))
+			thread_x._Thread__stop()
 	print("'SLA quit.'")
+#################ask_quit()#########################
 
 
 def main():
@@ -1182,3 +1191,7 @@ if __name__ == '__main__':
 			stime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 			fobj.write('Core dump happened at %s\n'%stime)
 			fobj.write('blackbox info: %s\n\n'%e)
+
+	print("main finished")
+	exit()
+	print("exited")
