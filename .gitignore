@@ -16,3 +16,4 @@ my_ftp.log
 ftp_download/*
 my_ftp_saves/*
 sal.corefile
+reserved_ftp.ini
