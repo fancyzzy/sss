@@ -258,6 +258,7 @@ class DirList(object):
 					self.ptext.set(s)
 					print("DEBUG wating to get file_path from FTP QUEUE..")
 					file_path = my_ftp.FTP_FILE_QUE.get()
+					#here also can use ftp.MONITOR_THREADS to make the stop
 					#exit this circle
 					if 'ftp quit' in file_path:
 						break

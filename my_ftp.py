@@ -33,6 +33,7 @@ l_threads.extend(my_ftp.DIRECT_DOWNLOAD_THREADS)
 l_threads.extend(my_ftp.PROGRESS_THREADS)
 '''
 
+DOWNLOADER_ICON = os.path.join(os.path.join(os.getcwd(), "resource"),'mail.ico')
 
 HOST = '135.242.80.16:8080'
 PORT = '8080'
@@ -41,10 +42,10 @@ ACC = 'QD-BSC2'
 PWD = 'qdBSC#1234'
 SAVE_DIR = FTP_SAVES
 
-#L_RESERVED_FTP = [r'ftp://ftpalcatel:ftp$alcatel1@172.23.102.135',r'ftp://QD-BSC2:qdBSC#1234@135.242.80.16:8080']
 L_RESERVED_FTP = []
 
 CONN = None
+CONN2 = None
 CWD_PATH = os.getcwd()
 DATA_BAK_FILE = os.path.join(CWD_PATH, "my_ftp.pkl")
 MAIL_KEYWORD = r'\d-\d{7}\d*'
@@ -61,6 +62,7 @@ AD4_PWD = ''
 MY_OLOOK = collections.namedtuple("MY_OLOOK", "server mail user pwd")
 
 FTP_INFO = collections.namedtuple("FTP_INFO", "HOST PORT ACC PWD DIRNAME")
+FTP_INFO_HISTORY = []
 
 #all the data to be backup
 DATA_BAK = collections.namedtuple("DATA_BAK", "ftp_bak ol_bak")
@@ -69,22 +71,21 @@ DIRECT_DOWNLOAD_STOP = True
 DIRECT_DOWNLOAD_THREADS = []
 DIRECT_DOWNLOAD_TOTAL = 0
 DIRECT_DOWNLOAD_COUNT = 0
+DIRECT_DOWNLOAD_BYTES = 0
 
 AUTOANA_ENABLE = False
 MONITOR_THREADS = []
 MONITOR_STOP = True
-MONITOR_REC = collections.namedtuple("M_REC", "index time subject ftp download_file")
-MONITOR_REC_FILE = os.path.join(SAVE_DIR, "monitor_history.txt")
-MONITOR_REC_LIST = []
-IS_FIND = False
 
-DOWNLOADER_ICON = os.path.join(os.path.join(os.getcwd(), "resource"),'mail.ico')
 
-file_number = 0
-dir_number = 0
 
 PROGRESS_THREADS = []
 FTP_FILE_QUE = Queue.Queue()
+PROGRESS_LBL = None
+PROGRESS_BAR = None
+PROGRESS_STRVAR = None
+PROGRESS_COST_SEC = 0
+PROGRESS_TOTAL_BYTES = 0
 
 
 def save_bak():
@@ -193,27 +194,7 @@ def terminate_threads(l_threads):
 ################terminate_threads()##########################
 
 
-def record_monitor():
-	global IS_FIND
-	global MONITOR_REC_LIST
-
-	if IS_FIND and MONITOR_REC_LIST:
-		try:
-			with open(MONITOR_REC_FILE, 'a') as fobj:
-				for item in MONITOR_REC_LIST:
-					if 'unicode' in str(type(item)):
-						item = item.encode('utf-8')
-					fobj.write(item + '\n')
-  					fobj.write('Monitor stop\n')
-		except Exception as e:
-			printl("Record monitor history file error:%s" % e)
-		else:
-			MONITOR_REC_LIST[:] = []
-			IS_FIND = False
-############record_monitor()######################
-
-
-def ftp_conn(host, port, acc, pwd):
+def ftp_conn(host, port, acc, pwd, timeout = None):
 	global CONN
 
 	printl('ftp_conn start, host:{0}, port:{1}, acc:{2}, pwd:{3}'\
@@ -222,11 +203,14 @@ def ftp_conn(host, port, acc, pwd):
 	try:
 		CONN = ftplib.FTP()
 		#set a 3 seconds timeout
-		CONN.connect(host, port, 3)
+		if not timeout:
+			CONN.connect(host, port, timeout)
+		else:
+			CONN.connect(host, port)
 	except (socket.error, socket.gaierror), e:
 		printl('ERROR: cannot reach host "%s", exited.' % host)
 		return False
-	printl('*** Successfully connected to host "%s"'% host)
+	printl("Successfully connected to host '%s'"% host)
 
 	try:
 		CONN.login(acc, pwd)
@@ -234,18 +218,42 @@ def ftp_conn(host, port, acc, pwd):
 		printl('ERROR: cannot login as "%s", exited.' % acc)
 		CONN.quit()
 		return False
-	printl('*** Successfully logged in as "%s"' % acc)
+	printl("Successfully logged in as '%s'" % acc)
 
 	return True
 ############ftp_conn()#####################
 
 
+def ftp_write_handle(buff,total,func):
+	global DIRECT_DOWNLOAD_BYTES
+	global PROGRESS_BAR
+	global PROGRESS_STRVAR
+	global PROGRESS_COST_SEC
+	global PROGRESS_TOTAL_BYTES
+
+	start_t = time.clock()
+	func(buff)
+	block_len = len(buff)
+	DIRECT_DOWNLOAD_BYTES += block_len
+	PROGRESS_BAR["maximum"] = total
+	PROGRESS_BAR["value"] = DIRECT_DOWNLOAD_BYTES
+
+	interv_t = time.clock() - start_t
+
+	PROGRESS_TOTAL_BYTES += block_len
+	PROGRESS_COST_SEC += interv_t
+
+	s = "{:.1%}({:.1f}KB/s)".format(DIRECT_DOWNLOAD_BYTES*1.0/total, \
+		PROGRESS_TOTAL_BYTES/1024.0/PROGRESS_COST_SEC)
+	PROGRESS_STRVAR.set(s)
+
 def ftp_download_dir(dirname):
 	global CONN
 	global DIRECT_DOWNLOAD_COUNT
 	global DIRECT_DOWNLOAD_TOTAL
+	global DIRECT_DOWNLOAD_BYTES
 
-	print('ftp_download_dir start, dirname = %s' % dirname)
+	print("ftp_download_dir, dirname: '%s'" % dirname)
 	try:
 		CONN.cwd(dirname)
 	except ftplib.error_perm:
@@ -260,61 +268,132 @@ def ftp_download_dir(dirname):
 		os.chdir(new_dir)
 
 		filelines = []
+		filelines_bk = []
 		CONN.dir(filelines.append)
 		filelines_bk = CONN.nlst()
+
+		if len(filelines_bk) != len(filelines):
+			print("Error, Number does not match!\n")
+
 		i = 0
 		for file in filelines:
-			#<DIR> display in widows and dxxx in linux
+			#unmatched file_name
+			file_name = ''
+			if filelines_bk[i] in file:
+				file_name = filelines_bk[i]
+			else:
+				#the filelines_bk is not in the same order with filelines
+				#filelines like:
+				#'drwxr-xr-x   2 ftpalcatel users        1024 Oct 26 14:46 SQ2DSL02.02C_20171026095345.0'
+				#There is a bug if the file name contains blanks
+				file_name = file.split()[-1]
+
+			#<DIR> display in widows and drwxr- in linux
 			#here maybe a bug if only a file with name 'dxxxx'
 			if '<DIR>' in file or file.startswith('d'):
-				ftp_download_dir(filelines_bk[i])
-				CONN.cwd('..')
-				os.chdir('..')
+					ftp_download_dir(file_name)
+					CONN.cwd('..')
+					os.chdir('..')
 			else:
 				try:
 					#how to speed up?
-					CONN.retrbinary('RETR %s' % filelines_bk[i], \
-						open(filelines_bk[i], 'wb').write)
-				except ftplib.error_perm:
-					printl('ERROR: cannot read file "%s"' % file)
-					os.unlink(file)
+					DIRECT_DOWNLOAD_BYTES = 0
+					#change transfor mode from ASCII to Binary
+					#then allowed to get file_size
+					CONN.voidcmd('TYPE I')
+					file_size = CONN.size(file_name)
+					maxblocksize = 2097152
+					printl("Downloading[%d/%d]: %s"%\
+						(DIRECT_DOWNLOAD_COUNT+1, DIRECT_DOWNLOAD_TOTAL, file_name))
+
+					file_to_write = open(file_name, 'wb').write
+					CONN.retrbinary('RETR %s' % file_name, \
+						#use lambda to pass multiple paremeters
+						#open(filelines_bk[i], 'wb').write,maxblocksize)
+						lambda block: ftp_write_handle(block,file_size,file_to_write), maxblocksize)
+				#except ftplib.error_perm:
+				except Exception as e:
+					printl('ERROR: cannot download file "%s"' % file_name)
+					print("error:",e)
+					try:
+						os.unlink(file_name)
+					except Exception as e:
+						#print("DEBUG os.unlink error:",e)
+						continue
+					else:
+						print("DEBUG os.unlink successed")
+						continue
 				else:
 					DIRECT_DOWNLOAD_COUNT += 1
-					printl("[%d/%d]downloaded: %s" % \
-						(DIRECT_DOWNLOAD_COUNT, DIRECT_DOWNLOAD_TOTAL, filelines_bk[i]))
 			i += 1
 		return True
 ##################download_dir()###############
 
-def get_file_number(dirname):
-	global DIRECT_DOWNLOAD_TOTAL
-	global CONN
+def start_get_file_number(host, port, acc, pwd, download_dir):
+
+	t = threading.Thread(target=new_conn_get_file_number,args=(host, port, acc, pwd, download_dir))
+	DIRECT_DOWNLOAD_THREADS.append(t)
+	t.start()
+	print("DEBUG new conn get file number thread start",t)
+
+def new_conn_get_file_number(host, port, acc, pwd, download_dir):
+	global CONN2
+
+	print('start the conn2 for file number, host:{0}, port:{1}, acc:{2}, pwd:{3}'\
+		.format(host,port,acc,pwd))
 
 	try:
-		CONN.cwd(dirname)
+		CONN2 = ftplib.FTP()
+		#set a 3 seconds timeout
+		CONN2.connect(host, port, 30000)
+	except (socket.error, socket.gaierror), e:
+		printl('ERROR: cannot reach host "%s", exited.' % host)
+		return False
+
+	try:
+		CONN2.login(acc, pwd)
 	except ftplib.error_perm:
-		printl('ERROR: cannot cd to "%s"' % dirname)
+		printl('ERROR: cannot login as "%s", exited.' % acc)
+		CONN2.quit()
+
+	get_file_number(download_dir)
+###############################################################3#
+
+
+def get_file_number(dirname):
+	global DIRECT_DOWNLOAD_TOTAL
+	global CONN2
+
+	#print("DEBUG get_file_number, dirname:'%s'"%dirname)
+	try:
+		CONN2.cwd(dirname)
+		CONN2.voidcmd('TYPE I')
+	except Exception as e:
+		printl('ERROR: cannot cd to "%s" due to %s' % (dirname,e))
 		return None
 	else:
 
-		'''
-		new_dir = os.path.basename(dirname)
-		if not os.path.exists(new_dir):
-			os.mkdir(new_dir)
-		os.chdir(new_dir)
-		'''
-
+		#bug filelines not match with filelines_bk order
 		filelines = []
-		CONN.dir(filelines.append)
-		filelines_bk = CONN.nlst()
+		filelines_bk = []
+		filelines_bk = CONN2.nlst()
+		CONN2.dir(filelines.append)
+		if len(filelines_bk) != len(filelines):
+			printl("DEBUG ERROR number don't match\n")
+
 		i = 0
-	
 		for file in filelines:
-			if '<DIR>' in file:
-				get_file_number(filelines_bk[i])
-				CONN.cwd('..')
+			if '<DIR>' in file or file.startswith('d'):
+				if filelines_bk[i] in file:
+					get_file_number(filelines_bk[i])
+				else:
+					#print("disorderrrrrrrrrrrrrrrrr!")
+					#print ("DEBUG file=",file)
+					get_file_number(file.split()[-1])
+				CONN2.cwd('..')
 			else:
 				DIRECT_DOWNLOAD_TOTAL += 1
+				#print("DEBUG counting: ",DIRECT_DOWNLOAD_TOTAL)
 			i += 1
 #############get_file_number()###############
 
@@ -323,12 +402,15 @@ def my_download(host, port, acc, pwd, save_dir, download_dir):
 	global CONN
 	global DIRECT_DOWNLOAD_TOTAL
 	global DIRECT_DOWNLOAD_COUNT
-	global file_number
-	global dir_number
+	global PROGRESS_COST_SEC
+	global PROGRESS_TOTAL_BYTES
+	global PROGRESS_STRVAR
+	global PROGRESS_BAR
+	global PROGRESS_LBL
 
 	down_name = os.path.basename(download_dir)
 
-	printl("my_download starts")
+	printl("my_download starts,download_dir: '%s'"%(download_dir))
 	#if this file had been downloaded, quit
 	printl("Check exists of dir: %s"%(os.path.join(save_dir,down_name)))
 	if os.path.exists(os.path.join(save_dir,down_name)):
@@ -337,25 +419,37 @@ def my_download(host, port, acc, pwd, save_dir, download_dir):
 
 	os.chdir(save_dir)
 
-	if not ftp_conn(host, port, acc, pwd):
+	if not ftp_conn(host, port, acc, pwd, 30000):
 		return None
 
-	printl("A new download dir, now calculating files number...")
+	printl("Begin to download, calculating files number...")
 	DIRECT_DOWNLOAD_TOTAL = 0
 	DIRECT_DOWNLOAD_COUNT = 0
-	get_file_number(download_dir)
+	start_get_file_number(host, port, acc, pwd, download_dir)
+	#CONN.set_debuglevel(1)
+	#get_file_number(download_dir)
 	if DIRECT_DOWNLOAD_TOTAL == 0:
-		return None
-	printl("Total %d files to be downloaded" % (DIRECT_DOWNLOAD_TOTAL))
-	ftp_download_dir(download_dir)
+		pass
+		#return None
+	#printl("Total %d files" % (DIRECT_DOWNLOAD_TOTAL))
+	PROGRESS_COST_SEC = 0
+	PROGRESS_TOTAL_BYTES = 0
+	PROGRESS_BAR.pack(side=LEFT)
+	PROGRESS_LBL.pack(side=LEFT)
+
+	download_success = ftp_download_dir(download_dir)
 	CONN.quit()
 
+	PROGRESS_BAR.pack_forget()
+	PROGRESS_LBL.pack_forget()
 	if DIRECT_DOWNLOAD_TOTAL == DIRECT_DOWNLOAD_COUNT:
 		printl("All {} files downloaded successfully!".\
 			format(DIRECT_DOWNLOAD_COUNT))
 	else:
+		#Should deleted the directory?
 		printl("DEBUG error, download number mismatch")
-
+	if not download_success:
+		return None
 	return os.path.join(save_dir,os.path.basename(download_dir))
 #############my_download()########
 
@@ -383,7 +477,7 @@ def ftp_upload_file(file_path, remote_path):
 def my_upload(host, port, acc, pwd, file_path, remote_path):
 	global CONN
 
-	if not ftp_conn(host, port, acc, pwd):
+	if not ftp_conn(host, port, acc, pwd, 3):
 		return False
 
 	if not ftp_upload_file(file_path, remote_path):
@@ -424,7 +518,7 @@ class My_Ftp(object):
 		fm0 = Frame(self.ftp_top)
 		#Label(fm0, text='Mail Monitor v2.0',\
 		#	font = ('Helvetica', 12, 'bold')).pack()#, fg= my_color_blue_office)
-		blank_label_1 = Label(fm0, text = '').pack()
+		Label(fm0, text = '').pack()
 
 		fm0.pack()
 
@@ -552,7 +646,6 @@ class My_Ftp(object):
 		self.label_interval = Label(self.fm_config,text= 'Monitor Interval(sec):')
 		self.label_interval.grid(row=2,column=2)
 		self.v_interval = StringVar()
-		self.interval_count = 0
 		self.spin_interval = Spinbox(self.fm_config, textvariable=self.v_interval,\
 			width = 8, from_=1, to=8640,increment=1)
 		self.spin_interval.grid(row=2,column=3)	
@@ -561,6 +654,13 @@ class My_Ftp(object):
 
 		self.fm_mid = Frame(self.lframe_monitor, height=50)
 		#button trigger monitor mails' titles
+		self.ftp_queue = []
+		#like self.ftp_queue = [['ftp_info1','ftp_info2'],['ftp_info3'],['ftp_info4,ftp_info5']]
+		self.v_ftp_number = StringVar()
+		self.v_ftp_number.set(str(len(self.ftp_queue)))
+		self.label_ftp_q = Label(self.fm_mid, textvariable = self.v_ftp_number)
+		self.label_ftp_q.pack(side=RIGHT)
+		Label(self.fm_mid, text="FTP Queued: ").pack(side=RIGHT)
 		self.button_monitor = Button(self.fm_mid, text="Start monitor",\
 		 command=self.start_monitor_download, activeforeground\
 		='white', activebackground='orange',bg = 'white', relief='raised', width=20)
@@ -570,14 +670,34 @@ class My_Ftp(object):
 
 		self.pwindow_qconn.pack()
 
-		Label(self.ftp_top,text='  ').pack(side=LEFT)
+		Label(self.ftp_top,text='  ').pack()
 		self.fm_tip = Frame(self.ftp_top)
+		fm_label = Frame(self.fm_tip)
 		#self.label_blank11 = Label(self.fm_tip,text= '  '*3).pack(side=LEFT)
 		self.v_tip = StringVar()
-		self.label_tip = Label(self.fm_tip,textvariable=self.v_tip)
+		self.label_tip = Label(fm_label,textvariable=self.v_tip,justify=LEFT)
 		self.label_tip.grid(row=0,column=0)
+		fm_label.pack()
+
+		fm_b = Frame(self.fm_tip)
+		self.p = ttk.Progressbar(fm_b, orient=HORIZONTAL, mode='determinate',length = 100, maximum=100)
+		self.p.pack(side=LEFT)
+		global PROGRESS_BAR
+		global PROGRESS_STRVAR
+		global PROGRESS_LBL
+		self.v_p = StringVar()
+		self.v_p.set("")
+		PROGRESS_STRVAR = self.v_p
+		self.p_label = Label(fm_b, textvariable=self.v_p)
+		self.p_label.pack(side=LEFT)
+		PROGRESS_LBL = self.p_label
+		PROGRESS_BAR = self.p
+		fm_b.pack(side=LEFT)
 		self.fm_tip.pack(side=LEFT)
+		PROGRESS_BAR.pack_forget()
+		PROGRESS_LBL.pack_forget()
 		#GUI finish
+
 
 		#######retrive data from disk#############:
 		data_bak = retrive_bak()
@@ -616,7 +736,7 @@ class My_Ftp(object):
 		t_progress_tip = threading.Thread(target=self.start_progress_tip)
 		t_progress_tip.start()
 		PROGRESS_THREADS.append(t_progress_tip)
-		print("DEBUG progress thread start",t_progress_tip)
+		print("DEBUG my_ftp.py progress thread start",t_progress_tip)
 
 
 		
@@ -628,7 +748,7 @@ class My_Ftp(object):
 		from the string s to find the first ftp format string
 		return 'ftp://QD-BSC2:qdBSC#1234@135.242.80.16:8080/01_Training/02_PMU/02_Documents'
 		'''
-		print("Debug start extract_ftp_info")
+		print("extract_ftp_info start")
 		#full_ftp_re = r'ftp://(\w.*):(\w.*)@(\d{2,3}\.\d{2,3}\.\d{2,3}\.\d{2,3})(:\d*)?(/.*?\r)'
 		#due to the mail content got from exchangelib is html fomat
 		#the matched result ended with a '\r' being the ending flag
@@ -639,7 +759,7 @@ class My_Ftp(object):
 		res = re.search(full_ftp_re,s)
 
 		if not res:
-			#host is a domain name use r'(.[^/]*) to get the name string
+			#host is a non-numeric domain name then we use r'(.[^/]*) to get the name string
 			full_ftp_re = r'ftp://(\w.*):(\w.*)@(.[^/]*)(:\d*)?(/.*[^\r,\n,\.])'
 			res = re.search(full_ftp_re,s)
 
@@ -650,8 +770,7 @@ class My_Ftp(object):
 		#res.group(4) the port number
 		#res.group(5) the download directory
 		if res:
-			print("DEBUG regular expression res=",res)
-			print("DEBUG regular expression host res.group(0)=",res.group(0))
+			print("Get regular expression host res.group(0)=",res.group(0))
 			acc = res.group(1)
 			pwd = res.group(2)
 			host = res.group(3)
@@ -665,7 +784,7 @@ class My_Ftp(object):
 	
 			if acc and pwd and host and port and dirname:
 				ftp_info = FTP_INFO(host, port, acc, pwd, dirname)
-				print("DEBUG ftp info found: %s" % ''.join(ftp_info))
+				print("Get full ftp info: %s" % ''.join(ftp_info))
 				return ftp_info
 			else:
 				print("DEBUG error, some ftp info is none")
@@ -693,6 +812,7 @@ class My_Ftp(object):
 						self.v_host.set(host)
 						self.v_port.set(port)
 					print("DEBUG host:{},port:{} got!".format(self.v_host.get(),self.v_port.get()))
+					#here just return None to only update host and port
 					return None
 				else:		
 					print("DEBUG ftp info not found return None")
@@ -712,7 +832,7 @@ class My_Ftp(object):
 
 				dirname = ''
 				if res:
-					print("DEBUG found the trace download flag!",res.group(0))
+					print("DEBUG found the flag of trace download request: ",res.group(0))
 					#there is trace upload flag
 					s_ftp = res.group(0)
 					dir_re = r'(/.*)+[^\.,\r,\n]'
@@ -720,7 +840,7 @@ class My_Ftp(object):
 					if res_dir:
 						dirname = res_dir.group(0)
 						#debug why group(1) inacurate
-						print("DEBUG the dirname found:",dirname)
+						print("DEBUG get the dirname: ",dirname)
 						if dirname != None:
 							ftp_info = FTP_INFO('', '', '', '', dirname)
 							print("DEBUG partial ftp_info get: %s" % ''.join(ftp_info))
@@ -783,10 +903,12 @@ class My_Ftp(object):
 	def start_direct_download(self):
 		global DIRECT_DOWNLOAD_STOP
 		global DIRECT_DOWNLOAD_THREADS
+		global PROGRESS_BAR
+		global PROGRESS_LBL
 
 		if DIRECT_DOWNLOAD_STOP:
 			DIRECT_DOWNLOAD_STOP = False
-			self.button_direct.config(text="Click to stop...",bg='orange',relief='sunken',state='normal')
+			self.button_direct.config(text="Downloading...",bg='orange',relief='sunken',state='normal')
 
 			t = threading.Thread(target=self.direct_download)
 			DIRECT_DOWNLOAD_THREADS.append(t)
@@ -798,6 +920,8 @@ class My_Ftp(object):
 			terminate_threads(DIRECT_DOWNLOAD_THREADS)
 			printl("Direct Download is terminated")
 			self.button_direct.config(text="Direct download",bg='white',relief='raised',state='normal')
+			PROGRESS_BAR.pack_forget()
+			PROGRESS_LBL.pack_forget()
 
 	##########start_direct_download()###################
 	
@@ -811,6 +935,8 @@ class My_Ftp(object):
 		global DOWNLOAD_DIR
 		global DIRECT_DOWNLOAD_STOP
 		global L_RESERVED_FTP
+		global PROGRESS_TOTAL_BYTES
+		global PROGRESS_COST_SEC
 		printl("Direct_download starts")
 
 
@@ -841,21 +967,33 @@ class My_Ftp(object):
 				self.v_ddirname.set(self.v_ddirname.get()[:-1])
 			DOWNLOAD_DIR = self.v_ddirname.get()
 
+
 		#set host to display as ip:port format
 		self.v_host.set(HOST + ':' + PORT)
 		file_saved = ''
-		file_saved = my_download(HOST, PORT, ACC, PWD, SAVE_DIR, DOWNLOAD_DIR)
+		start_t = time.clock()
+		try:
+			file_saved = my_download(HOST, PORT, ACC, PWD, SAVE_DIR, DOWNLOAD_DIR)
+		except Exception as e:
+			print("my_download error",e)
+			file_saved = None
+		end_t = time.clock()
+		interval_t = time.clock() - start_t
 
+		print("DEBUG file_saved=",file_saved)
 		if not file_saved:
-			printl("Download failed.")
+			print("DEBUG Download failed, time used: %.1f seconds"%interval_t)
 			#crash
 			#showerror(title='Ftp Connect Error', message="Cannot accesst to %s" % HOST)
 		else:
-			printl("Download completed in: %s" % file_saved)
+			self.l_savein.bell()
+			printl("Download completed in: %s, total time: %.1f seconds" % (file_saved, interval_t))
+			print("DEBUG total bytes:{} total sec:{}".format(PROGRESS_TOTAL_BYTES, PROGRESS_COST_SEC))
 			#update MM's knowledge about ftp info 
 			s = r"ftp://"+ACC+":"+PWD+"@"+HOST+":"+PORT
 			if s not in L_RESERVED_FTP:
 				L_RESERVED_FTP.append(s)
+				printl("New ftp address learned:",s)
 
 			if AUTOANA_ENABLE:
 				#send to queue for other processing, e.g.,auto search in listdir.py
@@ -868,21 +1006,79 @@ class My_Ftp(object):
 		return file_saved
 	##############direct_download()##################
 
-	#revise with read_exchange
-	def monitor_download(self, mail_keyword):
-		global MONITOR_REC_LIST
-		global MONITOR_REC_FILE
-		global IS_FIND
+
+	def download_ftpinfo(self):
+		global DIRECT_DOWNLOAD_STOP
+		print("DEBUG start download_ftpinfo circle")
+		interval_count = 0
+		while 1:
+
+			if MONITOR_STOP or (not self.running):
+				printl("download_ftpinfo thread stopped")
+				break
+
+			if self.ftp_queue:
+				#pop out the first ftp_info_list
+				ftp_info_list = self.ftp_queue[0][:]
+				#ftp_info_list len >1 only when the case from partial ftp info
+				#that guessed from many reserved ftp address
+				#so once one ftp_info was successfully download
+				#quit the for circle
+				print("DEBUG start to download ftp_info_list",ftp_info_list)
+				file_saved=''
+				for ftp_info in ftp_info_list:
+					self.v_host.set(ftp_info)
+					if DIRECT_DOWNLOAD_STOP:
+						DIRECT_DOWNLOAD_STOP = False
+						self.button_direct.config\
+						(text="Downloading...",bg='orange',relief='sunken',state='normal')
+						file_saved = self.direct_download()
+						if file_saved:
+							self.v_saved_number += 1
+							self.l_savein.config(text='%s'%(str(self.v_saved_number) + ' Saved in: '), bg='orange')
+							#quit after downloading successuflly
+							break
+						else:
+							printl("try another reserved ftp address...")
+							continue
+
+					else:
+						printl("Error, another direct download is under processing, you can't start to download this!")
+						self.ftp_queue.insert(0,ftp_info_list)
+						break
+
+				#record all the download info into ftp_log.txt
+				if not file_saved:
+					file_saved = "Failed"
+				printl("ftp_info: %s download: %s"%(str(ftp_info),file_saved))
+
+				self.ftp_queue.pop(0)
+				self.v_ftp_number.set(str(len(self.ftp_queue)))
+
+			else:
+				pass
+
+			time.sleep(int(self.v_interval.get()))
+			interval_count += 1
+			print(">>>>Download ftp, count %d" % (interval_count))
+		#while
+		print("DEBUG download_ftpinfo stopped.")
+	############################download_ftpinfo()####################################
+
+
+	def monitor_ftpinfo(self):
+		'''
+		get ftp info extracted from mail body
+		and the mail comes from read exchange server by read_exchange.py
+		'''
 		global MONITOR_STOP
 		global DIRECT_DOWNLOAD_STOP
 		global L_RESERVED_FTP
+		global FTP_INFO_HISTORY
 
-		self.interval_count = 0
-		MONITOR_REC_LIST.append('')
-		MONITOR_REC_LIST.append(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-		MONITOR_REC_LIST.append("index time subject ftp download_file")
-
+		interval_count = 0
 		find_folder = "inbox"
+
 		try:
 			acc = self.v_csl.get()
 			pwd = self.v_cip.get()
@@ -890,23 +1086,15 @@ class My_Ftp(object):
 			mail = self.v_mail_k_add.get()
 			my_ol = read_exchange.MY_OUTLOOK(acc, pwd, ser, mail)
 		except Exception as e:
-			printl("Error outlook initialization failed, e: %s"% e)
-			printl("DEBUG acc:{},pwd:{},ser:{},mail:{}".format(acc,pwd,ser,mail))
-			return
+			printl("Error exchanger account: {} connecting failed: {}".format(mail,e))
+		else:
 
-		re_rule = re.compile(mail_keyword, re.I)
-		del_html = re.compile(r'<[^>]+>',re.S)
-
-		saved_item_path = ''
-		n = 0
-		IS_FIND = False
-	
-		if my_ol:
-			printl('Start monitoring...')
+			printl("Start monitoring exchange account %s"% mail)
+			del_html = re.compile(r'<[^>]+>',re.S)
 			while 1:
-				if not self.running:
-					print("DEBUG no longer running, quit thie while")
+				if MONITOR_STOP or (not self.running):
 					break
+
 				for mail_item in my_ol.find_mail(self.v_mail_k.get()):
 					if not mail_item:
 						break
@@ -915,48 +1103,32 @@ class My_Ftp(object):
 						self.l_savein.bell()
 						#Extract ftp info and then start to download 
 						plain_body = del_html.sub('',mail_item.body)
-						print("DEBUG plain_body:",plain_body)
+						#print("DEBUG plain_body:",plain_body)
 						ftp_info = self.extract_ftp_info(plain_body, from_mail=True)
 
+						if (ftp_info != None) and (ftp_info not in FTP_INFO_HISTORY):
+							FTP_INFO_HISTORY.append(ftp_info)
+						else:
+							print("DBUEG already handled ftp_info")
+							continue
+
 						#only dirname case:
+						try_ftp_list = []
 						if ftp_info != None and ftp_info.HOST == '' and ftp_info.ACC == '' and ftp_info.DIRNAME != '':
 							#use reserved ftp info to combine this dirname to try:
+
 							for ftp_addr in L_RESERVED_FTP:
-								print("DEBUG try ftp addr:",ftp_addr)
+								#here is it necessary to add the '\r' ending?
 								s = ftp_addr + ftp_info.DIRNAME + '\r'
 								if 'unicode' in str(type(s)):
 									s = s.encode('utf-8')
-								self.v_host.set(s)
-
-								if DIRECT_DOWNLOAD_STOP:
-									DIRECT_DOWNLOAD_STOP = False
-									self.button_direct.config\
-									(text="Click to stop...",bg='orange',relief='sunken',state='normal')
-									file_saved = self.direct_download()
-									#record mail, time, ftp, file_saved
-									#MONITOR_REC = collections.namedtuple("M_REC", "index time subject ftp download_file")
-									n += 1
-									t = str(mail_item.datetime_received)
-									s = mail_item.subject
-									f = ''.join(ftp_info)
-									if file_saved:
-										d = file_saved
-										monitor_record = MONITOR_REC(str(n)+'.', t, s, f, d)
-										#MONITOR_REC_LIST.append(',  '.join(monitor_record))
-										MONITOR_REC_LIST.append(str(monitor_record))
-										IS_FIND = True
-										self.v_saved_number += 1
-										self.l_savein.config(text='%s'%(str(self.v_saved_number) + ' Saved in: '), bg='orange')
-										#quit after downloading successuflly
-										break
-									else:
-										print("try another reserved ftp address...")
-										continue
-								else:
-									printl("Error, another direct download is under processing, you can't start download this!")
+								try_ftp_list.append(s)
+								#is here necessary to do the mutex?
+								self.ftp_queue.append(try_ftp_list[:])
 
 
-						if ftp_info != None and ftp_info.HOST != '' and ftp_inf.ACC != '':
+						#for the full ftp case
+						elif ftp_info != None and ftp_info.HOST != '' and ftp_info.ACC != '':
 							printl("Detected ftp_info:{}".format(ftp_info))
 							#FTP_INFO = collections.namedtuple("FTP_INFO", "HOST PORT ACC PWD DIRNAME")
 							#must add '\\r' because extract_ftp_info use this as an end
@@ -964,85 +1136,47 @@ class My_Ftp(object):
 							ftp_info.PORT+ftp_info.DIRNAME + '\r'
 							if 'unicode' in str(type(s)):
 								s = s.encode('utf-8')
-							self.v_host.set(s)
-							if DIRECT_DOWNLOAD_STOP:
-								DIRECT_DOWNLOAD_STOP = False
-								self.button_direct.config\
-								(text="Click to stop...",bg='orange',relief='sunken',state='normal')
-								file_saved = self.direct_download()
-								#record mail, time, ftp, file_saved
-								#MONITOR_REC = collections.namedtuple("M_REC", "index time subject ftp download_file")
-								n += 1
-								t = str(mail_item.datetime_received)
-								s = mail_item.subject
-								f = ''.join(ftp_info)
-								if file_saved:
-									d = file_saved
-									monitor_record = MONITOR_REC(str(n)+'.', t, s, f, d)
-									#MONITOR_REC_LIST.append(',  '.join(monitor_record))
-									MONITOR_REC_LIST.append(str(monitor_record))
-									IS_FIND = True
-									self.v_saved_number += 1
-									self.l_savein.config(text='%s'%(str(self.v_saved_number) + ' Saved in: '), bg='orange')
-								else:
-									#if no problem in dowloading process,
-									#this is probably an replied mail cotaining old mail's ftp url
-									#then nothing to do with this
-									pass
-								
-							else:
-								printl("Error, another direct download is under processing, you can't start download this!")
+							self.ftp_queue.append([s])
+						else:
+							print("DEBUG error, should no such case")
+							pass
 
+					self.v_ftp_number.set(str(len(self.ftp_queue)))
+					sub = mail_item.subject
+					printl("Detect a ftp_info: %s from mail: %s"%(str(ftp_info),sub))
+				#end for
 				time.sleep(int(self.v_interval.get()))
-				self.interval_count += 1
-				printl("%d seconds interval..count %d"\
-				 % (int(self.v_interval.get()), self.interval_count))
+				interval_count += 1
+				print("Monitor ftp>>>>, count %d"\
+				 % (interval_count))
+			#end while
 
-
-				if self.interval_count % 10 == 0:
-					record_monitor()
-
-				if MONITOR_STOP:
-					printl("Monitor stopped")
-					break
-
-		else:
-			printl("ERROR, cannot access to the exhcange server")
-		#record
-		record_monitor()
 		MONITOR_STOP = True
 		self.button_monitor.config(text="Start monitor",bg='white',relief='raised',state='normal')
-	#############monitor_download()#############
+	#############monitor_ftpinfo()#############
 
 
 	def start_monitor_download(self):
-
-		global MAIL_KEYWORD
 		global MONITOR_STOP
-		global MONITOR_REC_LIST
-		global IS_FIND
-
-		if self.v_mail_k.get():
-			MAIL_KEYWORD = self.v_mail_k.get()
-
-		self.button_monitor.config(text="Click to stop...",bg='orange', relief='sunken',state='normal')
 
 		if MONITOR_STOP:
 			MONITOR_STOP = False
-
-			t = threading.Thread(target=self.monitor_download, args=(MAIL_KEYWORD,))
+			self.button_monitor.config(text="Monitoring...",bg='orange', relief='sunken',state='normal')
+			t_monitor = threading.Thread(target=self.monitor_ftpinfo)
+			t_download = threading.Thread(target=self.download_ftpinfo)
 			#for terminating purpose
-			MONITOR_THREADS.append(t)
-			t.start()	
-			print("DEBUG monitor thread start",t)
+			MONITOR_THREADS.append(t_monitor)
+			MONITOR_THREADS.append(t_download)
+			t_monitor.start()	
+			t_download.start()	
+			print("DEBUG threads monitor {} and download {} start".format(t_monitor,t_download))
+
+			#Here to start another consumer thread to trigger those ftp
 		else:
 			MONITOR_STOP = True
 			self.button_monitor.config(text="Stopping..",bg='orange', relief='sunken',state='disable')
 			terminate_threads(MONITOR_THREADS)
 			printl("Monitor is terminated")
-
-			record_monitor()
-
 			self.button_monitor.config(text="Start monitor",bg='white',relief='raised',state='normal')
 	############start_monitor_download()#############
 

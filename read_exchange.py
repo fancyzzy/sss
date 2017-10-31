@@ -71,7 +71,11 @@ class MY_OUTLOOK():
 			if self.utc_time_point >= d_rec:
 				break
 			subject = item.subject
+			#print("DEBUG subject=",subject)
+			#print("DEBUG type(subject)=",type(subject))
 
+			if subject == None:
+				subject = ''
 			if re_rule.search(subject):
 				printl("Detect a new mail, Date:[%s], subject:[%s]" % (str(d_rec), subject))
 				yield item
