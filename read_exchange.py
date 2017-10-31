@@ -21,7 +21,6 @@ from log_reserve import printl
 EXCHANGE_SERVER_ADD = 'CASArray.ad4.ad.alcatel.com'
 tz = EWSTimeZone.timezone('UTC')
 UTC_NOW = tz.localize(EWSDateTime.now())# - timedelta(hours=8)
-#printl("DEBUG read_exchange.py: utc_now= %s" %str(UTC_NOW))
 
 user_name = 'ad4\\tarzonz'
 pwd = 'CV_28763_10a'
@@ -39,8 +38,8 @@ class MY_OUTLOOK():
 
 		tz = EWSTimeZone.timezone('UTC')
 		self.utc_time_point = UTC_NOW
-		printl("Successfully accessed to exchange server. time:%s"%str(UTC_NOW))
-		printl("Server:{0}, Mail:{1}, Username{2}".format(ser,mail,acc))
+		print("Successfully accessed to exchange server. time:%s"%str(UTC_NOW))
+		print("Server:{0}, Mail:{1}, Username{2}".format(ser,mail,acc))
 	##########init()##############
 
 
@@ -71,13 +70,12 @@ class MY_OUTLOOK():
 			if self.utc_time_point >= d_rec:
 				break
 			subject = item.subject
-			#print("DEBUG subject=",subject)
-			#print("DEBUG type(subject)=",type(subject))
 
 			if subject == None:
 				subject = ''
+
 			if re_rule.search(subject):
-				printl("Detect a new mail, Date:[%s], subject:[%s]" % (str(d_rec), subject))
+				printl("\nDetect a new mail, Date:[%s], subject:[%s]" % (str(d_rec), subject))
 				yield item
 
 		#update time to the checked latest mail's
