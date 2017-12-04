@@ -18,13 +18,15 @@ from time import sleep
 from log_reserve import printl
 
 
-EXCHANGE_SERVER_ADD = 'CASArray.ad4.ad.alcatel.com'
+#your exchange server address
+EXCHANGE_SERVER_ADD = ''
 tz = EWSTimeZone.timezone('UTC')
 UTC_NOW = tz.localize(EWSDateTime.now())# - timedelta(hours=8)
 
-user_name = 'ad4\\tarzonz'
-pwd = 'CV_28763_10a'
-mail_addr = 'felix.zhang@alcatel-lucent.com'
+#your account and password
+user_name = ''
+pwd = ''
+mail_addr = ''
 
 
 class MY_OUTLOOK():
@@ -89,8 +91,13 @@ def test_start_monitor():
 	global pwd
 	global EXCHANGE_SERVER_ADD
 	global mail_addr
+	from bs4 import BeautifulSoup
 
 	#pythoncom.CoInitialize()
+	#need to change to your account and password
+	user_name = ''
+	pwd = ''
+	mail_addr = 'xxx@yy.com'
 
 	print("DEBUG test monitor start")
 	my_ol = MY_OUTLOOK(user_name, pwd, EXCHANGE_SERVER_ADD, mail_addr)
@@ -109,10 +116,25 @@ def test_start_monitor():
 				if not mail:
 					break
 				else:
-					print("mail(subject):",mail.subject)
+					print("\nmail(subject):",mail.subject)
+					print("\nmail(body):",mail.body)
+					import pprint
+					pp = pprint.PrettyPrinter(indent=4)
+					print("pprint:")
+					pp.pprint(mail.body)
+
+					soup = BeautifulSoup(mail.body, 'html.parser')
+					mail_content = soup.findAll('body')
+					print("DEBUG mail_content=",mail_content)
+
 					del_html = re.compile(r'<[^>]+>',re.S)
 					plain_body = del_html.sub('',mail.body)
-					#print("mail(body):",plain_body)
+					print("\nmail(plain_body):",plain_body)
+					plain_content = del_html.sub('',str(mail_content))
+					print("\nmail plain content:",plain_content)
+					print("DIR(mail)",dir(mail))
+					pp.pprint("pp DIR(mail):%s"%(dir(mail)))
+
 					full_ftp_re = r'ftp://(\w.*):(\w.*)@(\d{2,3}\.\d{2,3}\.\d{2,3}\.\d{2,3})(:\d*)?(/.*?\r)'
 					res = re.search(full_ftp_re,plain_body)
 					if res:
@@ -120,8 +142,8 @@ def test_start_monitor():
 					return
 					pass
 
-			print("debug 6 seconds interval... %d/20\n" % n)
-			sleep(6)
+			print("debug 3 seconds interval... %d/20\n" % n)
+			sleep(3)
 
 	else:
 		print("DEBUG my_ol is none")
@@ -136,7 +158,8 @@ if __name__ == '__main__':
 
 	print("DEBUG start main")
 	#timedelta = 8 means now, - 9 means 1 hour earlier
-	UTC_NOW = tz.localize(EWSDateTime.now()) - timedelta(hours=1)
+	#UTC_NOW = tz.localize(EWSDateTime.now()) - timedelta(hours=1)
+	UTC_NOW = tz.localize(EWSDateTime.now())
 
 	t = threading.Thread(target=test_start_monitor)
 	t.start()		
