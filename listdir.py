@@ -986,7 +986,7 @@ class DirList(object):
 		else:
 			s = u" Customed Keyword Searching"
 
-		s = s + '(' + self.v_files_types.get() + ') ' + 'Results:'
+		s = '-'*20 + s + '(' + self.v_files_types.get() + ') ' + 'Results ' + '-'*20
 
 		if is_incompleted:
 			s = '(incompleted)'+ s
@@ -1007,7 +1007,7 @@ class DirList(object):
 				#self.listbox_dirs.insert(END,s)
 
 				#Keyword Name
-				s =u"[Keyword] {0}".format(lk[0])
+				s =u"{0}".format(lk[0])
 				self.listbox_dirs.insert(END,s)
 				srl.append(s)
 				self.listbox_dirs.itemconfig(END,fg=my_color_blue_office)
