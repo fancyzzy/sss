@@ -69,7 +69,9 @@ This is all the resources location
 my_color_blue = '#%02x%02x%02x' % (51,153,255)
 my_color_blue_office ='#%02x%02x%02x' % (43,87,154) 
 my_color_green = '#%02x%02x%02x' % (192,233,17)
+my_color_light_green = '#%02x%02x%02x' % (163,190,140)
 my_color_orange = '#%02x%02x%02x' % (210,71,38)
+my_color_red = '#%02x%02x%02x' % (191,97,106)
 #for terminate searching
 l_threads = []
 PREDIFINED_KEYWORD = 'keywords.csv'

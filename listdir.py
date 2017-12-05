@@ -1005,19 +1005,31 @@ class DirList(object):
 				j = j+1
 				#s = self.searcher.l_keywords[i][0]
 				#self.listbox_dirs.insert(END,s)
-				s =u"{0}".format(lk[0])
+
+				#Keyword Name
+				s =u"[Keyword] {0}".format(lk[0])
 				self.listbox_dirs.insert(END,s)
 				srl.append(s)
-				self.listbox_dirs.itemconfig(END,fg=my_color_blue)
+				self.listbox_dirs.itemconfig(END,fg=my_color_blue_office)
+
+				#Module Category
+				module_category = lk[2].decode("gb2312")#.encode("utf-8")
+				s =u"[Module]:{0}".format(module_category)
+				self.listbox_dirs.insert(END,s)
+				self.listbox_dirs.itemconfig(END,fg=my_color_light_green)
+				srl.append(s)
+
+				#Issue Category
 				issue_category = lk[5].decode("gb2312")#.encode("utf-8")
 				#s =u"issue category:---{0}---".format(lk[4])
 				s =u"[Issue Category]:{0}".format(issue_category)
 				self.listbox_dirs.insert(END,s)
-				self.listbox_dirs.itemconfig(END,fg=my_color_orange)
+				self.listbox_dirs.itemconfig(END,fg=my_color_red)
 				srl.append(s)
-				issue_category = lk[6].decode("gb2312")#.encode("utf-8")
+
+				cr_category = lk[6].decode("gb2312")#.encode("utf-8")
 				#s =u"issue category:---{0}---".format(lk[4])
-				s =u"[Related CRs]:{0}".format(issue_category)
+				s =u"[Related CRs]:{0}".format(cr_category)
 				self.listbox_dirs.insert(END,s)
 				self.listbox_dirs.itemconfig(END,fg=my_color_orange)
 				srl.append(s)
