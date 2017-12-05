@@ -1213,5 +1213,7 @@ if __name__ == '__main__':
 			fobj.write('blackbox info: %s\n\n'%e)
 
 	print("main finished")
-	exit()
-	print("exited")
+	###no exit() in windows .exe mode
+	#or else it would be error
+	#exit()
+	#print("exited")

@@ -25,11 +25,11 @@ MIT
 
 ## Installation
 
-[\\135.242.80.37\sharing_folder_37\sla\SLA2.4\SLA_64bit_exchangeServer_release\SLA2.4_Setup.exe](file:///\\135.242.80.37\sharing_folder_37\sla\SLA2.4\SLA_64bit_exchangeServer_release\SLA2.4_Setup.exe)
+bin\SLA2.4_Setup.exe
 
 ## Source Code
 
-gitlab
+.
 
 ##  Python 3rd-Part Package Dependencies
 
