@@ -203,7 +203,7 @@ class DirList(object):
 		self.popup_menu.add_separator()
 		self.popup_menu.add_command(label='Decode',command=self.cm_start_bsc_decode)
 		self.popup_menu.add_separator()
-		self.popup_menu.add_command(label='Repetion',command=self.cm_start_logline_count)
+		self.popup_menu.add_command(label='Lines Repetition',command=self.cm_start_logline_count)
 		#popup_menu.entryconfig("Open", state="disable")
 		############# menu init ################################
 
