@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # --*-- coding:utf-8 --*--
+#test add a new line
 
 
 #import os
@@ -319,8 +320,8 @@ class DirList(object):
 
 	def menu_about(self):
 		s = askyesnocancel(title='about', message = "SLA - Site Log Analyser v2.4, any idea, just feedback to us:",\
-			detail="felix.zhang@nokia-sbell.com\nirone.li@nokia-sbell.com\neric.a.zhu@nokia-sbell.com\nbella.sun@nokia-sbell.comn\n\
-			QD GSM-A All Rights Reserved",icon=INFO)
+			detail="felix.zhang@nokia-sbell.com\naaron.a.liu@nokia-sbell.com\nirone.li@nokia-sbell.com\neric.a.zhu@nokia-sbell.com\nbella.sun@nokia-sbell.comn\ntina.a.zhang@nokia-sbell.comn\n\
+			2017 Qingdao GSM-A SLA Team",icon=INFO)
 		'''
 		d = Dialog(None,title='about',text="SLA - Site Log Analyser v2.1\
 			\nAny idea, just feedback to us:\nfelix.zhang@nokia-sbell.com\
