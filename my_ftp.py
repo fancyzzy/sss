@@ -65,10 +65,8 @@ FTP_INFO_HISTORY = []
 
 #all the data to be backup
 DATA_BAK = collections.namedtuple("DATA_BAK", "ftp_bak ol_bak")
-try:
-	PARTIAL_FTP_RE = open('download_flag.txt','r').readlines()[0]
-except:
-	PARTIAL_FTP_RE = ''
+PARTIAL_FTP_RE = open('download_flag.txt','r').readlines()[0]
+print("DEBUG PARTIAL_FTP_RE= %s"%PARTIAL_FTP_RE)
 
 DIRECT_DOWNLOAD_STOP = True
 DIRECT_DOWNLOAD_THREADS = []
@@ -618,7 +616,7 @@ class My_Ftp(object):
 		self.entry_mail_add.grid(row=0,column=3)
 
 		#Domain//Usrnamer label and entry
-		self.label_csl = Label(self.fm_config, text = 'Domain/CSL:',justify = LEFT)
+		self.label_csl = Label(self.fm_config, text = 'Domain\CSL:',justify = LEFT)
 		self.label_csl.grid(row=1,column=0)
 		self.v_csl = StringVar()
 		self.entry_csl = Entry(self.fm_config, textvariabl=self.v_csl, width=27)
@@ -822,16 +820,14 @@ class My_Ftp(object):
 				#then get it and combined with the reserved servers
 				#try every reserved servers
 
-				partial_ftp_re = ''
-				if not PARTIAL_FTP_RE:
-					partial_ftp_re = \
-					r'(TEC server.*(\n)?.*)|(traces are.*(\n)?.*)'+\
-					r'|(available traces.*(\n)?.*)|(download traces.*(\n)?.*)'+\
-					r'|(you can get.*(\n)?.*)|(traces upload.*(\n).*)|(ftp server.*(\n).*)'+\
-					r'|(upload to.*(\n).*)'
-				else:
-					partial_ftp_re = PARTIAL_FTP_RE
-
+				'''
+				partial_ftp_re = \
+				r'(TEC server.*(\n)?.*)|(traces are.*(\n)?.*)'+\
+				r'|(available traces.*(\n)?.*)|(download traces.*(\n)?.*)'+\
+				r'|(you can get.*(\n)?.*)|(traces upload.*(\n).*)|(ftp server.*(\n).*)'+\
+				r'|(upload to.*(\n).*)'
+				'''
+				partial_ftp_re = PARTIAL_FTP_RE
 				res = re.search(partial_ftp_re, s, re.IGNORECASE)
 
 				dirname = ''
