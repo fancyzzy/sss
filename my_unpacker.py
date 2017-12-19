@@ -3,6 +3,9 @@ import os
 import tarfile
 import gzip
 import zipfile
+#import patoolib
+from unrar import rarfile
+#rarfile.UNRAR_TOOL='unrar'
 import re
 from my_resources import time_interval
 
@@ -11,8 +14,9 @@ TGZ = '.tgz'
 TAR = '.tar'
 GZ = '.gz'
 ZIP = '.zip'
+RAR = '.rar'
 
-unpack_list = ['.tar.gz','.gz','.tar','.tgz','.zip']
+unpack_list = ['.tar.gz','.gz','.tar','.tgz','.zip','.rar']
 def detect_pack(file_name):
 	'''
 	check if this file is with a pack suffix
@@ -22,6 +26,7 @@ def detect_pack(file_name):
 	global TAR
 	global TGZ
 	global ZIP
+	global RAR
 
 
 	#support upcase sufix
@@ -33,6 +38,7 @@ def detect_pack(file_name):
 	r = re.search(r'.tar$', file_name)
 	t = re.search(r'.tgz$', file_name)
 	zp = re.search(r'.zip$', file_name)
+	rar = re.search(r'.rar$', file_name)
 
 	#prevent to unpack as gz, if tar.gz or .tgz detected
 	if a or t:
@@ -50,6 +56,8 @@ def detect_pack(file_name):
 		pack_category = GZ
 	elif zp:
 		pack_category = ZIP
+	elif rar:
+		pack_category = RAR
 	else:
 		pack_category = ''
 		pass
@@ -64,6 +72,7 @@ def untar_file(pack_category, file_name, delet_cpfi=False):
 	global TAR
 	global TGZ
 	global ZIP
+	global RAR
 
 	S = None
 	new_file = ""
@@ -120,6 +129,20 @@ def untar_file(pack_category, file_name, delet_cpfi=False):
 			zip_file.close()
 			if delet_cpfi:
 				os.remove(file_name)
+		elif pack_category == RAR:
+			#rar_file = patoolib.extract_archive(file_name, outdir = new_file)
+			print("DEBUG RAR start, file_name=",file_name)
+			'''
+			with rarfile.RarFile(file_name) as rar_file:
+				print("DEBUG rar_file.namelist=",rar_file.namelist())
+				rar_file.extractall(new_file)
+			'''
+			rar_file = rarfile.RarFile(file_name)
+			names = rar_file.namelist()
+			rar_file.extractall(new_file)
+			rar_file.close()
+			if delet_cpfi:
+				os.remove(file_name)
 
 		else:
 			pass
@@ -130,39 +153,7 @@ def untar_file(pack_category, file_name, delet_cpfi=False):
 	return S,new_file
 #################untar_file()#############
 
-@time_interval
-def untar_function(filename, delet_fi=False):
-	s = (None, "")
-	pack_name = ('','')
-	if os.path.isfile(filename):
-		pack_name = detect_pack(filename)
-		if pack_name[0]:
-			#progress tip put(pack_name[1])
-			s = untar_file(pack_name[0],filename, delet_fi)
-			if s[0]:
-				return s
-			new_file = s[1]
-			if os.path.exists(new_file):
-				s = untar_function(pack_name[0],new_file, delet_fi)
-				if s[0]:
-					return s
-	else:
-		files = os.listdir(filename)
-		for fi in files:
-			fi_d = os.path.join(filename, fi)
-			s =untar_function(pack_name[0],fi_d, delet_fi)
-	return s
-	
 	
 if __name__ == '__main__':
-	file_list = []
-	abs_path = os.getcwd()
-	for filename in os.listdir(abs_path):
-		filename_path = os.path.join(abs_path, filename)
-		file_list.append(filename_path)
-#	print file_list
-#	s = untar_function(file_list)
-	delet_fi = True
-	for file in file_list:
-		s = untar_function(file, delet_fi)
-	print "DEBUG result s=",s
+
+	print("my unpacker")
