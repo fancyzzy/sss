@@ -73,6 +73,7 @@ def unpack_item(itemname, delet_fi=False):
 			PROGRESS_QUE.put(tip)
 			s = my_unpacker.untar_file(pack_name[0],itemname, delet_fi)
 			if s[0]:
+				print("Unpack error")	
 				return s
 			new_file = s[1]
 			if os.path.exists(new_file):
@@ -113,8 +114,9 @@ def files_unpack(path_list):
 		#check if this is unpack available file,
 		#if it is, update the new folder into new_path_list
 		for sufx in my_unpacker.unpack_list:
-			if path_list[i].endswith(sufx):
-				new_path_list[i] = path_list[i].rstrip(sufx)
+			if path_list[i].lower().endswith(sufx):
+				#new_path_list[i] = path_list[i].rstrip(sufx)
+				new_path_list[i] = path_list[i][:-len(sufx)]
 				break
 
 	return new_path_list

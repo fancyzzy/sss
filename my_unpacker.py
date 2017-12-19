@@ -1,7 +1,8 @@
-import tarfile
 import sys
 import os
+import tarfile
 import gzip
+import zipfile
 import re
 from my_resources import time_interval
 
@@ -9,9 +10,9 @@ TARGZ = '.tar.gz'
 TGZ = '.tgz'
 TAR = '.tar'
 GZ = '.gz'
+ZIP = '.zip'
 
-unpack_list = ['.tar.gz','.gz','.tar','.tgz']
-
+unpack_list = ['.tar.gz','.gz','.tar','.tgz','.zip']
 def detect_pack(file_name):
 	'''
 	check if this file is with a pack suffix
@@ -20,12 +21,18 @@ def detect_pack(file_name):
 	global GZ
 	global TAR
 	global TGZ
+	global ZIP
+
+
+	#support upcase sufix
+	file_name = file_name.lower()
 
 	pack_category = ''
 	a = re.search(r'.tar.gz$', file_name)
 	g = re.search(r'.gz$', file_name)
 	r = re.search(r'.tar$', file_name)
 	t = re.search(r'.tgz$', file_name)
+	zp = re.search(r'.zip$', file_name)
 
 	#prevent to unpack as gz, if tar.gz or .tgz detected
 	if a or t:
@@ -41,6 +48,8 @@ def detect_pack(file_name):
 		pack_category = TAR
 	elif g:
 		pack_category = GZ
+	elif zp:
+		pack_category = ZIP
 	else:
 		pack_category = ''
 		pass
@@ -54,6 +63,7 @@ def untar_file(pack_category, file_name, delet_cpfi=False):
 	global GZ
 	global TAR
 	global TGZ
+	global ZIP
 
 	S = None
 	new_file = ""
@@ -61,7 +71,9 @@ def untar_file(pack_category, file_name, delet_cpfi=False):
 	if not pack_category:
 		return None
 	else:
-		new_file = file_name.rstrip(pack_category)
+		#Bug new file is not changed due to uppercase
+		#new_file = file_name.rstrip(pack_category)
+		new_file = file_name[:-len(pack_category)]
 
 	try:
 		if pack_category == TARGZ:
@@ -100,6 +112,15 @@ def untar_file(pack_category, file_name, delet_cpfi=False):
 			tar.close()
 			if delet_cpfi:
 				os.remove(file_name)
+
+		elif pack_category == ZIP:
+			zip_file = zipfile.ZipFile(file_name, 'r')
+			names = zip_file.namelist()
+			S = zip_file.extractall(new_file)
+			zip_file.close()
+			if delet_cpfi:
+				os.remove(file_name)
+
 		else:
 			pass
 	except Exception as e:

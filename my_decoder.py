@@ -24,7 +24,6 @@ def decode_one_file(file_name):
 
 	log_list =[file_name] 
 	log_len = 1
-	print("DEBUG log_list=",log_list)
 	log_arry = (c_char_p * log_len)()
 	for i in range(log_len):
 		log_arry[i] = log_list[i]

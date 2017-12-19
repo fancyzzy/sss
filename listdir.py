@@ -730,10 +730,10 @@ class DirList(object):
 		self.current_path_item_selected_number = len(self.listbox_dirs.curselection())
 		#check untar possible:
 		index_list = self.listbox_dirs.curselection()
-		re_pattern = r'(\.tar\.gz$)|(\.gz$)|(\.tar$)|(\.tgz$)'
+		re_pattern = r'(\.tar\.gz$)|(\.gz$)|(\.tar$)|(\.tgz$)|(\.zip$)'
 		for idx in index_list:
 			path = self.listbox_dirs.get(idx)
-			result = re.search(re_pattern, path)
+			result = re.search(re_pattern, path.lower())
 			if not result:
 				self.popup_menu.entryconfig("Unpack", state = "disable")
 				break
